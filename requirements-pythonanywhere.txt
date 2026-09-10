@@ -1,0 +1,42 @@
+# ============================================================
+# Kisan Ki Awaz - PythonAnywhere Free Tier Dependencies
+# Lightweight subset for WSGI hosting via a2wsgi.
+# Local development may still use requirements.txt with full ML packages.
+# ============================================================
+
+# --- API Server ---
+fastapi>=0.104.0
+python-multipart>=0.0.6
+a2wsgi>=1.10.0
+
+# --- ASGI/HTTP runtime (PythonAnywhere provides its own WSGI server, but these help locally) ---
+uvicorn>=0.24.0
+
+# --- Configuration & Validation ---
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+
+# --- Image Processing ---
+Pillow>=10.0.0
+numpy>=1.24.0
+
+# --- Logging ---
+loguru>=0.7.0
+
+# --- Database ---
+sqlalchemy>=2.0.0
+sqlite-utils>=3.35
+
+# --- HTTP Client ---
+requests>=2.31.0
+
+# --- Speech Services ---
+gtts>=2.4.0
+pyttsx3>=2.90
+SpeechRecognition>=3.10.0
+
+# --- Translation ---
+deep-translator>=1.11.0
+
+# --- Utilities ---
+python-dateutil>=2.8.2

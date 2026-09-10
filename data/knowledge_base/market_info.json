@@ -1,0 +1,44 @@
+[
+  {
+    "id": "mi-001",
+    "title": "Pakistan Wheat Market Overview 2023",
+    "organization": "Pakistan Bureau of Statistics",
+    "document_title": "Agricultural Statistics of Pakistan",
+    "publication_date": "2023-08-01",
+    "url": "https://www.pbs.gov.pk/agriculture-statistics",
+    "crop": "wheat",
+    "topic": "market_prices",
+    "category": "market",
+    "source_credibility": "authoritative",
+    "content": "Wheat market data (FY 2022-23): Total production: 26.4 million tonnes. Support price: Rs. 3,900/40kg (Punjab), Rs. 4,000/40kg (Sindh). Average mandi price range: Rs. 3,800-4,200/40kg. Major markets: Lahore, Multan, Faisalabad, Karachi, Hyderabad. Pakistan is the 8th largest wheat producer globally. Domestic consumption: 25.5 million tonnes. Surplus for export: ~0.9 million tonnes. Price determinants: Government support price, international wheat prices (CBOT), transport costs, milling quality. NOTE: Current market prices should be verified from live sources. This data is for reference and historical context only.",
+    "keywords": ["wheat", "market", "price", "support price", "mandi", "production", "consumption"]
+  },
+  {
+    "id": "mi-002",
+    "title": "Cotton Market Data Pakistan",
+    "organization": "Pakistan Bureau of Statistics",
+    "document_title": "Cotton Production and Trade Statistics",
+    "publication_date": "2023-07-15",
+    "url": "https://www.pbs.gov.pk/cotton-statistics",
+    "crop": "cotton",
+    "topic": "market_prices",
+    "category": "market",
+    "source_credibility": "authoritative",
+    "content": "Cotton market data (FY 2022-23): Production: 7.3 million bales (480lb each). Target: 10 million bales. Major producing provinces: Punjab (65%), Sindh (35%). Average seed cotton price: Rs. 8,500-9,500/40kg. Major markets: Multan, Bahawalpur, Faisalabad, Karachi. Pakistan is the 5th largest cotton producer but still imports for textile industry. Export earnings: $16 billion (textile products). Price factors: International prices (ICE), quality (staple length, strength), gin turnout, pest damage. NOTE: Verify current prices from Cotton Exchange or official sources before making decisions.",
+    "keywords": ["cotton", "market", "price", "production", "export", "textile", "seed cotton"]
+  },
+  {
+    "id": "mi-003",
+    "title": "Rice Export Market Pakistan",
+    "organization": "Pakistan Bureau of Statistics",
+    "document_title": "Rice Trade Statistics",
+    "publication_date": "2023-06-01",
+    "url": "https://www.pbs.gov.pk/rice-trade",
+    "crop": "rice",
+    "topic": "market_prices",
+    "category": "market",
+    "source_credibility": "authoritative",
+    "content": "Rice market data (FY 2022-23): Total production: 9.3 million tonnes (milled). Basmati production: 1.5 million tonnes. Non-basmati: 7.8 million tonnes. Export: 4.5 million tonnes ($2.5 billion). Basmati export: 0.4 million tonnes ($800 million). Major export markets: Middle East, Africa, Europe (Basmati). Domestic prices: Super Basmati Rs. 120-140/kg (retail), IRRI-6 Rs. 60-80/kg. Major mandi markets: Sheikhupura, Gujranwala, Sialkot, Karachi. Price determinants: International demand, Indian export policy, quality parameters (length, aroma), certification (EU pesticide MRLs). NOTE: Export market prices fluctuate daily; consult REAP (Rice Exporters Association of Pakistan) for current rates.",
+    "keywords": ["rice", "basmati", "export", "market", "price", "REAP", "quality"]
+  }
+]

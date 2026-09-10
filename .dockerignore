@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Android build artifacts
+android/.gradle/
+android/app/build/
+android/build/
+android/sdk/
+android/.jdk/
+android/local.properties
+
+# Local data / secrets
+.env
+*.db
+*.sqlite3
+
+# Streamlit / local dev
+.streamlit/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# APK outputs
+*.apk

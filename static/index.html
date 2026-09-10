@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#1B5E20">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Kisan Ki Awaz - AI Farming Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root {
+            --green-900: #0D3B10;
+            --green-800: #1B5E20;
+            --green-700: #2E7D32;
+            --green-600: #388E3C;
+            --green-500: #4CAF50;
+            --green-400: #66BB6A;
+            --green-100: #E8F5E9;
+            --green-50: #F1F8E9;
+            --orange: #FF9800;
+            --orange-light: #FFF3E0;
+            --red: #F44336;
+            --red-light: #FFEBEE;
+            --blue: #2196F3;
+            --blue-light: #E3F2FD;
+            --gray-50: #FAFAFA;
+            --gray-100: #F5F5F5;
+            --gray-200: #EEEEEE;
+            --gray-300: #E0E0E0;
+            --gray-400: #BDBDBD;
+            --gray-600: #757575;
+            --gray-800: #424242;
+            --radius-sm: 8px;
+            --radius: 14px;
+            --radius-lg: 20px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+            --shadow: 0 4px 16px rgba(0,0,0,0.08);
+            --shadow-lg: 0 8px 28px rgba(0,0,0,0.12);
+            --font: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            --font-rtl: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        html, body { font-family:var(--font); background:var(--gray-100); color:var(--gray-800); min-height:100vh; overflow-x:hidden; }
+
+        /* ── App Shell ── */
+        .app-bar {
+            background: linear-gradient(135deg, var(--green-900) 0%, var(--green-700) 100%);
+            color:#fff; padding:18px 20px 14px; position:sticky; top:0; z-index:100;
+            box-shadow: var(--shadow); display:flex; align-items:center; gap:12px;
+        }
+        .app-bar .logo { width:42px; height:42px; background:rgba(255,255,255,0.15); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0; }
+        .app-bar .brand { flex:1; }
+        .app-bar h1 { font-size:1.2rem; font-weight:700; letter-spacing:-0.3px; }
+        .app-bar .subtitle { font-size:0.75rem; opacity:0.85; margin-top:1px; }
+        .app-bar .lang-badge {
+            background:rgba(255,255,255,0.18); backdrop-filter:blur(4px);
+            padding:5px 12px; border-radius:20px; font-size:0.72rem; font-weight:600;
+            border:1px solid rgba(255,255,255,0.25); white-space:nowrap;
+        }
+
+        /* ── Connection Status Bar ── */
+        .conn-status {
+            position:fixed; top:0; left:0; right:0; z-index:200;
+            padding:8px 16px; font-size:0.8rem; font-weight:500; text-align:center;
+            display:none; align-items:center; justify-content:center; gap:8px;
+        }
+        .conn-status.offline { background:var(--red-light); color:#B71C1C; display:flex; }
+        .conn-status.connecting { background:var(--orange-light); color:#E65100; display:flex; }
+        .conn-status.online { background:var(--green-100); color:#1B5E20; display:flex; }
+
+        /* ── Bottom Nav ── */
+        .bottom-nav {
+            position:fixed; bottom:0; left:0; right:0; background:#fff;
+            display:flex; border-top:1px solid var(--gray-200); z-index:100;
+            padding-bottom:env(safe-area-inset-bottom);
+            box-shadow:0 -2px 10px rgba(0,0,0,0.04);
+        }
+        .nav-item { flex:1; display:flex; flex-direction:column; align-items:center; padding:8px 2px 10px; font-size:0.6rem; color:var(--gray-600); cursor:pointer; transition:all 0.2s; text-decoration:none; border-top:2px solid transparent; }
+        .nav-item.active { color:var(--green-800); border-top-color:var(--green-800); background:var(--green-50); }
+        .nav-item .material-icons-round { font-size:22px; margin-bottom:2px; }
+
+        /* ── Pages ── */
+        .page { display:none; padding:16px 16px 92px; animation:fadeIn 0.28s ease-out; }
+        .page.active { display:block; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+        /* ── Cards ── */
+        .card { background:#fff; border-radius:var(--radius-lg); padding:20px; margin-bottom:16px; box-shadow:var(--shadow-sm); border:1px solid var(--gray-200); }
+        .card-title { font-size:1.05rem; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:10px; color:var(--green-900); }
+        .card-title .material-icons-round { color:var(--green-600); font-size:22px; }
+
+        /* ── Language Selection ── */
+        .lang-welcome { text-align:center; padding:10px 0 20px; }
+        .lang-welcome h2 { font-size:1.4rem; color:var(--green-900); margin-bottom:6px; }
+        .lang-welcome p { color:var(--gray-600); font-size:0.92rem; }
+        .lang-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px; }
+        .lang-btn {
+            background:#fff; border:2px solid var(--gray-200); border-radius:var(--radius-lg);
+            padding:18px 12px; text-align:center; cursor:pointer; transition:all 0.2s;
+            box-shadow:var(--shadow-sm);
+        }
+        .lang-btn:active, .lang-btn:hover { transform:translateY(-2px); border-color:var(--green-500); box-shadow:var(--shadow); }
+        .lang-btn .native { font-size:1.25rem; font-weight:700; color:var(--green-800); display:block; line-height:1.4; }
+        .lang-btn .english { font-size:0.8rem; color:var(--gray-600); margin-top:4px; }
+
+        /* ── Quick Actions ── */
+        .quick-actions { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
+        .quick-btn {
+            background:#fff; border:1px solid var(--gray-200); border-radius:var(--radius);
+            padding:14px 6px; text-align:center; cursor:pointer; transition:all 0.2s;
+            box-shadow:var(--shadow-sm);
+        }
+        .quick-btn:active { transform:scale(0.96); background:var(--green-50); border-color:var(--green-400); }
+        .quick-btn .icon { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 8px; font-size:22px; color:#fff; }
+        .quick-btn.voice .icon { background:linear-gradient(135deg, var(--green-600), var(--green-400)); }
+        .quick-btn.camera .icon { background:linear-gradient(135deg, var(--blue), #42A5F5); }
+        .quick-btn.upload .icon { background:linear-gradient(135deg, var(--orange), #FFB74D); }
+        .quick-btn .label { font-size:0.75rem; font-weight:600; color:var(--gray-800); }
+
+        /* ── Text Input ── */
+        .input-card { background:#fff; border-radius:var(--radius-lg); padding:16px; box-shadow:var(--shadow-sm); border:1px solid var(--gray-200); }
+        .input-label { font-size:0.8rem; font-weight:600; color:var(--gray-600); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+        .text-input-wrap { position:relative; display:flex; gap:8px; align-items:flex-end; }
+        .text-input-wrap textarea {
+            flex:1; border:2px solid var(--gray-200); border-radius:var(--radius); padding:12px 14px;
+            font-size:1rem; font-family:var(--font); resize:none; min-height:64px; max-height:120px;
+            outline:none; transition:border-color 0.2s; background:var(--gray-50);
+        }
+        .text-input-wrap textarea:focus { border-color:var(--green-500); background:#fff; }
+        .voice-btn {
+            width:48px; height:48px; border-radius:50%; border:none; background:linear-gradient(135deg, var(--green-600), var(--green-500));
+            color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer;
+            box-shadow:0 4px 12px rgba(76,175,80,0.35); transition:all 0.2s; flex-shrink:0;
+        }
+        .voice-btn:active { transform:scale(0.92); }
+        .voice-btn.listening { animation:pulse 1.2s infinite; background:linear-gradient(135deg, var(--red), #EF5350); }
+        @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(244,67,54,0.5)} 70%{box-shadow:0 0 0 16px rgba(244,67,54,0)} 100%{box-shadow:0 0 0 0 rgba(244,67,54,0)} }
+        .send-btn {
+            width:100%; margin-top:12px; background:linear-gradient(135deg, var(--green-800), var(--green-600));
+            color:#fff; border:none; border-radius:var(--radius); padding:14px;
+            font-size:1rem; font-weight:600; cursor:pointer; transition:opacity 0.2s;
+            display:flex; align-items:center; justify-content:center; gap:8px;
+        }
+        .send-btn:disabled { opacity:0.5; cursor:not-allowed; }
+
+        /* ── Image Upload Area ── */
+        .upload-area {
+            border:2px dashed var(--gray-300); border-radius:var(--radius-lg); padding:24px 16px;
+            text-align:center; cursor:pointer; transition:all 0.2s; background:var(--gray-50);
+        }
+        .upload-area:active { border-color:var(--green-500); background:var(--green-50); }
+        .upload-area .icon { font-size:36px; color:var(--green-600); margin-bottom:8px; }
+        .upload-area .title { font-weight:600; color:var(--gray-800); }
+        .upload-area .desc { font-size:0.8rem; color:var(--gray-600); margin-top:4px; }
+        .image-preview { width:100%; max-height:220px; object-fit:contain; border-radius:var(--radius); border:1px solid var(--gray-200); margin:12px 0; display:none; background:#fff; }
+        .image-preview.visible { display:block; }
+
+        /* ── Results ── */
+        .result-box { background:#fff; border-radius:var(--radius-lg); padding:18px; line-height:1.75; font-size:0.96rem; box-shadow:var(--shadow-sm); border:1px solid var(--gray-200); }
+        .result-box.rtl { direction:rtl; text-align:right; font-family:var(--font-rtl); font-size:1.05rem; }
+        .confidence-bar { height:10px; border-radius:5px; background:var(--gray-200); overflow:hidden; margin:10px 0; }
+        .confidence-fill { height:100%; border-radius:5px; transition:width 0.6s ease; }
+        .confidence-fill.high { background:linear-gradient(90deg, var(--green-600), var(--green-400)); }
+        .confidence-fill.medium { background:linear-gradient(90deg, var(--orange), #FFB74D); }
+        .confidence-fill.low { background:linear-gradient(90deg, var(--red), #EF5350); }
+        .risk-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.3px; }
+        .risk-low { background:var(--green-100); color:var(--green-900); }
+        .risk-medium { background:var(--orange-light); color:#E65100; }
+        .risk-high { background:var(--red-light); color:#B71C1C; }
+        .risk-unknown { background:var(--gray-200); color:var(--gray-600); }
+        .source-card { background:var(--green-50); border:1px solid #C8E6C9; border-radius:var(--radius); padding:12px; margin:8px 0; font-size:0.85rem; }
+        .source-card .org { font-weight:700; color:var(--green-900); }
+        .source-card .doc { color:var(--gray-700); margin:4px 0; }
+        .source-card .meta { font-size:0.75rem; color:#1565C0; word-break:break-all; }
+        .warning-box { background:var(--orange-light); border-left:4px solid var(--orange); border-radius:var(--radius-sm); padding:12px 14px; margin:10px 0; color:#7A4A00; font-size:0.9rem; }
+        .error-box { background:var(--red-light); border-left:4px solid var(--red); border-radius:var(--radius-sm); padding:12px 14px; margin:10px 0; color:#B71C1C; font-size:0.9rem; }
+        .demo-banner { background:linear-gradient(135deg, #667eea, #764ba2); color:#fff; padding:10px 14px; border-radius:var(--radius); text-align:center; font-size:0.82rem; font-weight:500; }
+
+        /* ── Narration ── */
+        .narration-box { background:var(--green-50); border:1px solid var(--green-400); border-radius:var(--radius-lg); padding:16px; margin-top:14px; }
+        .narration-box audio { width:100%; height:40px; border-radius:8px; }
+        .narration-controls { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+        .narration-controls button { padding:8px 14px; border-radius:var(--radius-sm); border:1px solid var(--green-400); background:#fff; color:var(--green-800); cursor:pointer; font-size:0.8rem; font-weight:500; }
+
+        /* ── Metrics ── */
+        .metric-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+        .metric-card { background:#fff; border-radius:var(--radius); padding:16px; text-align:center; box-shadow:var(--shadow-sm); border:1px solid var(--gray-200); }
+        .metric-value { font-size:1.7rem; font-weight:800; color:var(--green-800); }
+        .metric-label { font-size:0.72rem; color:var(--gray-600); margin-top:4px; font-weight:500; }
+
+        /* ── Spinner ── */
+        .spinner { display:none; text-align:center; padding:30px; }
+        .spinner.active { display:block; }
+        .spinner-ring { width:44px; height:44px; border:4px solid var(--green-100); border-top-color:var(--green-600); border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 12px; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .spinner p { color:var(--gray-600); font-size:0.9rem; }
+
+        /* ── Empty States ── */
+        .empty-state { text-align:center; padding:40px 20px; color:var(--gray-600); }
+        .empty-state .material-icons-round { font-size:48px; color:var(--gray-300); margin-bottom:12px; }
+
+        /* ── Select Inputs ── */
+        select.kisan-select {
+            width:100%; padding:12px 14px; border:2px solid var(--gray-200); border-radius:var(--radius);
+            font-size:0.95rem; font-family:var(--font); background:#fff; outline:none;
+        }
+        select.kisan-select:focus { border-color:var(--green-500); }
+
+        /* ── Hidden ── */
+        .hidden { display:none !important; }
+
+        /* ── Responsive ── */
+        @media (min-width:600px) {
+            .lang-grid { grid-template-columns:repeat(3,1fr); }
+            .quick-actions { grid-template-columns:repeat(3,1fr); }
+            .metric-grid { grid-template-columns:repeat(4,1fr); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Connection Status -->
+    <div class="conn-status offline" id="connStatus"></div>
+
+    <!-- App Bar -->
+    <div class="app-bar" id="appBar">
+        <div class="logo">🌾</div>
+        <div class="brand">
+            <h1 id="appTitle">Kisan Ki Awaz</h1>
+            <div class="subtitle" id="appSubtitle">AI Farming Assistant</div>
+        </div>
+        <div class="lang-badge hidden" id="langBadge"></div>
+    </div>
+
+    <!-- Language Selection Page -->
+    <div class="page active" id="pageLanguage">
+        <div class="lang-welcome">
+            <h2 id="welcomeTitle">Welcome, Farmer!</h2>
+            <p id="welcomeText">Select your language to start.</p>
+        </div>
+        <div class="card" style="padding:16px;">
+            <div class="lang-grid" id="langGrid"></div>
+        </div>
+    </div>
+
+    <!-- Home Page -->
+    <div class="page" id="pageHome">
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <div class="quick-btn voice" onclick="startVoiceInput()">
+                <div class="icon"><span class="material-icons-round">mic</span></div>
+                <div class="label" id="qaVoice">Voice Ask</div>
+            </div>
+            <div class="quick-btn camera" onclick="openNativeCamera()">
+                <div class="icon"><span class="material-icons-round">photo_camera</span></div>
+                <div class="label" id="qaCamera">Camera</div>
+            </div>
+            <div class="quick-btn upload" onclick="document.getElementById('fileInput').click()">
+                <div class="icon"><span class="material-icons-round">upload</span></div>
+                <div class="label" id="qaUpload">Upload</div>
+            </div>
+        </div>
+
+        <!-- Text Question -->
+        <div class="input-card">
+            <div class="input-label"><span class="material-icons-round" style="font-size:18px">chat_bubble</span><span id="askLabel">Ask your farming question</span></div>
+            <div class="text-input-wrap">
+                <textarea id="questionInput" placeholder="e.g., How to control wheat leaf rust?"></textarea>
+                <button class="voice-btn" id="voiceBtn" onclick="startVoiceInput()" title="Speak your question">
+                    <span class="material-icons-round">mic</span>
+                </button>
+            </div>
+            <button class="send-btn" id="sendBtn" onclick="submitVoiceQuery()">
+                <span class="material-icons-round">send</span>
+                <span id="sendLabel">Get Answer</span>
+            </button>
+        </div>
+
+        <!-- Image Analysis -->
+        <div class="card">
+            <div class="card-title"><span class="material-icons-round">photo_library</span><span id="imgTitle">Analyze Crop / Disease</span></div>
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <div class="icon"><span class="material-icons-round" style="font-size:36px">cloud_upload</span></div>
+                <div class="title" id="uploadTitle">Tap to upload image</div>
+                <div class="desc" id="uploadDesc">Take a clear photo of the affected plant</div>
+            </div>
+            <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleImageSelect(event)">
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden" onchange="handleImageSelect(event)">
+            <img id="imagePreview" class="image-preview" alt="Preview">
+            <div class="input-label" style="margin-top:12px"><span id="imgQLabel">Optional question about image</span></div>
+            <textarea id="imageQuestion" class="kisan-select" style="border:2px solid var(--gray-200); padding:12px; border-radius:var(--radius); width:100%; resize:none; min-height:54px; font-family:var(--font);" placeholder="e.g., What disease is this?"></textarea>
+            <button class="send-btn hidden" id="analyzeBtn" onclick="submitImageQuery()">
+                <span class="material-icons-round">search</span>
+                <span id="analyzeLabel">Analyze Image</span>
+            </button>
+        </div>
+
+        <!-- Spinner & Result -->
+        <div id="spinner" class="spinner">
+            <div class="spinner-ring"></div>
+            <p id="spinnerText">Analyzing your request...</p>
+        </div>
+        <div id="resultArea" class="hidden"></div>
+    </div>
+
+    <!-- Market Page -->
+    <div class="page" id="pageMarket">
+        <div class="card">
+            <div class="card-title"><span class="material-icons-round">trending_up</span><span id="marketTitle">Market Intelligence</span></div>
+            <div class="input-label"><span id="marketCropLabel">Select Crop</span></div>
+            <select id="marketCrop" class="kisan-select" style="margin-bottom:14px;">
+                <option value="wheat">Wheat</option>
+                <option value="rice">Rice</option>
+                <option value="cotton">Cotton</option>
+                <option value="sugarcane">Sugarcane</option>
+                <option value="maize">Maize</option>
+                <option value="tomato">Tomato</option>
+                <option value="potato">Potato</option>
+                <option value="onion">Onion</option>
+            </select>
+            <button class="send-btn" onclick="fetchMarket()">
+                <span class="material-icons-round">refresh</span>
+                <span id="marketBtn">Get Prices</span>
+            </button>
+            <div id="marketResult" style="margin-top:16px"></div>
+        </div>
+    </div>
+
+    <!-- Weather Page -->
+    <div class="page" id="pageWeather">
+        <div class="card">
+            <div class="card-title"><span class="material-icons-round">wb_sunny</span><span id="weatherTitle">Weather & Risk Alerts</span></div>
+            <div class="input-label"><span id="weatherRegionLabel">Select Region</span></div>
+            <select id="weatherRegion" class="kisan-select" style="margin-bottom:14px;">
+                <option value="punjab_central">Punjab Central (Faisalabad)</option>
+                <option value="punjab_south">Punjab South (Multan)</option>
+                <option value="sindh_central">Sindh (Hyderabad)</option>
+                <option value="kpk">KPK (Peshawar)</option>
+                <option value="balochistan">Balochistan (Quetta)</option>
+            </select>
+            <button class="send-btn" onclick="fetchWeather()">
+                <span class="material-icons-round">cloud</span>
+                <span id="weatherBtn">Get Weather</span>
+            </button>
+            <div id="weatherResult" style="margin-top:16px"></div>
+        </div>
+    </div>
+
+    <!-- History Page -->
+    <div class="page" id="pageHistory">
+        <div class="card">
+            <div class="card-title"><span class="material-icons-round">history</span><span id="historyTitle">Analysis History</span></div>
+            <div id="historyList"><div class="empty-state"><span class="material-icons-round">history</span><p>No history yet.</p></div></div>
+        </div>
+    </div>
+
+    <!-- Demo Page -->
+    <div class="page" id="pageDemo">
+        <div class="card">
+            <div class="card-title"><span class="material-icons-round">play_circle</span><span id="demoTitle">Judge Demo Mode</span></div>
+            <div class="demo-banner">Language → Input → AI → RAG → Narration</div>
+            <button class="send-btn" onclick="runDemo()" style="margin-top:14px">
+                <span class="material-icons-round">play_arrow</span>
+                <span id="demoBtn">Run Demo Scenario</span>
+            </button>
+            <div id="demoResult" style="margin-top:16px"></div>
+        </div>
+        <div class="card">
+            <div class="card-title"><span class="material-icons-round">insights</span><span id="metricsTitle">Impact Metrics</span> <small style="color:var(--gray-600); font-weight:400">(Demo)</small></div>
+            <div class="metric-grid" id="metricsGrid">
+                <div class="metric-card"><div class="metric-value" id="metricAnalyses">0</div><div class="metric-label" id="metricAnalysesLabel">Analyses</div></div>
+                <div class="metric-card"><div class="metric-value">6</div><div class="metric-label" id="metricLangsLabel">Languages</div></div>
+                <div class="metric-card"><div class="metric-value" id="metricSources">0</div><div class="metric-label" id="metricSourcesLabel">Sources</div></div>
+                <div class="metric-card"><div class="metric-value" id="metricCrops">0</div><div class="metric-label" id="metricCropsLabel">Crops</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Page -->
+    <div class="page" id="pageSettings">
+        <div class="card">
+            <div class="card-title"><span class="material-icons-round">dns</span>Server URL</div>
+            <p style="font-size:0.85rem;color:var(--gray-600);margin-bottom:10px">Enter your deployed backend URL. Default works for demo only.</p>
+            <input type="url" id="serverUrlInput" class="kisan-select" style="margin-bottom:10px;" placeholder="https://your-server.com">
+            <button class="send-btn" onclick="saveServerUrl()">
+                <span class="material-icons-round">save</span>
+                <span>Save & Test Connection</span>
+            </button>
+            <div id="serverUrlStatus" style="margin-top:10px;font-size:0.85rem"></div>
+        </div>
+        <div class="card">
+            <div class="card-title"><span class="material-icons-round">settings</span><span id="settingsTitle">System Status</span></div>
+            <div id="systemStatus"><p style="color:var(--gray-600)">Loading...</p></div>
+            <button class="send-btn" onclick="resetLanguage()" style="margin-top:16px; background:var(--gray-100); color:var(--gray-800);">
+                <span class="material-icons-round">language</span>
+                <span id="changeLangBtn">Change Language</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav hidden" id="bottomNav">
+        <a class="nav-item active" onclick="showPage('pageHome')" data-page="pageHome">
+            <span class="material-icons-round">home</span><span id="navHome">Home</span>
+        </a>
+        <a class="nav-item" onclick="showPage('pageMarket')" data-page="pageMarket">
+            <span class="material-icons-round">bar_chart</span><span id="navMarket">Market</span>
+        </a>
+        <a class="nav-item" onclick="showPage('pageWeather')" data-page="pageWeather">
+            <span class="material-icons-round">cloud</span><span id="navWeather">Weather</span>
+        </a>
+        <a class="nav-item" onclick="showPage('pageHistory')" data-page="pageHistory">
+            <span class="material-icons-round">history</span><span id="navHistory">History</span>
+        </a>
+        <a class="nav-item" onclick="showPage('pageDemo')" data-page="pageDemo">
+            <span class="material-icons-round">science</span><span id="navDemo">Demo</span>
+        </a>
+        <a class="nav-item" onclick="showPage('pageSettings')" data-page="pageSettings">
+            <span class="material-icons-round">settings</span><span id="navSettings">Settings</span>
+        </a>
+    </div>
+
+    <script>
+        // ── State ──
+        let currentLang = null;
+        let currentLangName = '';
+        let selectedImageBase64 = null;
+        let isOnline = true;
+        let translations = {};
+
+        // Detect API base URL: use current origin if web, or Android bridge if in app
+        let API = window.location.origin;
+        if (typeof AndroidBridge !== 'undefined' && AndroidBridge.getApiBaseUrl) {
+            try { API = AndroidBridge.getApiBaseUrl(); } catch(e){}
+        }
+        // Allow user to override with a custom server URL from localStorage
+        applySavedServerUrl();
+
+        // ── Translations ──
+        const UI_STRINGS = {
+            en: {
+                welcomeTitle: "Welcome, Farmer!", welcomeText: "Select your language to start.",
+                askLabel: "Ask your farming question", sendLabel: "Get Answer",
+                imgTitle: "Analyze Crop / Disease", uploadTitle: "Tap to upload image",
+                uploadDesc: "Take a clear photo of the affected plant", imgQLabel: "Optional question about image",
+                analyzeLabel: "Analyze Image", spinnerText: "Analyzing your request...",
+                marketTitle: "Market Intelligence", marketCropLabel: "Select Crop", marketBtn: "Get Prices",
+                weatherTitle: "Weather & Risk Alerts", weatherRegionLabel: "Select Region", weatherBtn: "Get Weather",
+                historyTitle: "Analysis History", demoTitle: "Judge Demo Mode", demoBtn: "Run Demo Scenario",
+                metricsTitle: "Impact Metrics", settingsTitle: "System Status", changeLangBtn: "Change Language",
+                navHome:"Home", navMarket:"Market", navWeather:"Weather", navHistory:"History", navDemo:"Demo", navSettings:"Settings",
+                qaVoice:"Voice Ask", qaCamera:"Camera", qaUpload:"Upload",
+                metricAnalysesLabel:"Analyses", metricLangsLabel:"Languages", metricSourcesLabel:"Sources", metricCropsLabel:"Crops",
+                noHistory:"No history yet.", connectionError:"Cannot connect to server. Please check your internet.",
+                listening:"Listening...", speakPrompt:"Speak your farming question",
+                emptyQuestion:"Please enter or speak a question first."
+            },
+            ur: {
+                welcomeTitle: "خوش آمدید، کسان!", welcomeText: "شروع کرنے کے لیے اپنی زبان منتخب کریں۔",
+                askLabel: "اپنا زرعی سوال پوچھیں", sendLabel: "جواب حاصل کریں",
+                imgTitle: "فصل / بیماری کا تجزیہ کریں", uploadTitle: "تصویر اپ لوڈ کرنے کے لیے تھپتھپائیں",
+                uploadDesc: "متاثرہ پودے کی واضح تصویر لیں", imgQLabel: "تصویر کے بارے میں اختیاری سوال",
+                analyzeLabel: "تصویر کا تجزیہ کریں", spinnerText: "آپ کی درخواست کا تجزیہ ہو رہا ہے...",
+                marketTitle: "مارکیٹ انٹیلیجنس", marketCropLabel: "فصل منتخب کریں", marketBtn: "قیمتیں حاصل کریں",
+                weatherTitle: "موسم اور خطرے کی الرٹ", weatherRegionLabel: "علاقہ منتخب کریں", weatherBtn: "موسم حاصل کریں",
+                historyTitle: "تجزیہ کی تاریخ", demoTitle: "جج ڈیمو موڈ", demoBtn: "ڈیمو سیناریو چلائیں",
+                metricsTitle: "اثر کے میٹرکس", settingsTitle: "سسٹم کی حیثیت", changeLangBtn: "زبان تبدیل کریں",
+                navHome:"ہوم", navMarket:"مارکیٹ", navWeather:"موسم", navHistory:"تاریخ", navDemo:"ڈیمو", navSettings:"ترتیبات",
+                qaVoice:"آواز سے پوچھیں", qaCamera:"کیمرہ", qaUpload:"اپ لوڈ",
+                metricAnalysesLabel:"تجزیے", metricLangsLabel:"زبانیں", metricSourcesLabel:"ذرائع", metricCropsLabel:"فصلیں",
+                noHistory:"ابھی تک کوئی تاریخ نہیں۔", connectionError:"سرور سے رابطہ نہیں ہو سکا۔ براہ کرم انٹرنیٹ چیک کریں۔",
+                listening:"سن رہا ہے...", speakPrompt:"اپنا زرعی سوال بولیں",
+                emptyQuestion:"براہ کرم پہلے سوال لکھیں یا بولیں۔"
+            },
+            sd: {
+                welcomeTitle: "ڀليڪار، ڪسان!", welcomeText: "شروع ڪرڻ لاءِ پنهنجي چونڊيو.",
+                askLabel: "پنهنجو زرعي سوال پڇو", sendLabel: "جواب حاصل ڪرو",
+                imgTitle: "فصل / بيماري جو تجزيو", uploadTitle: "عڪس اپ لوڊ ڪرڻ لاءِ ٽپ ڪريو",
+                uploadDesc: "متاثر ٿيل پودي جي صاف عڪس وٺو", imgQLabel: "عڪس بابت اختياري سوال",
+                analyzeLabel: "عڪس جو تجزيو ڪريو", spinnerText: "توهان جي درخواست جو تجزيو ٿي رهيو آهي...",
+                marketTitle: "مارڪيٽ انٽيليجنس", marketCropLabel: "فصل چونڊيو", marketBtn: "قيمتون حاصل ڪريو",
+                weatherTitle: "موسم ۽ خطري جي الرٽ", weatherRegionLabel: "علائقو چونڊيو", weatherBtn: "موسم حاصل ڪريو",
+                historyTitle: "تجزيو جي تاريخ", demoTitle: "جج ڊيمو موڊ", demoBtn: "ڊيمو سيناريو هلائيو",
+                metricsTitle: "اثر جا پيمانا", settingsTitle: "سسٽم جي صورت", changeLangBtn: "ٻولي تبديل ڪريو",
+                navHome:"هوم", navMarket:"مارڪيٽ", navWeather:"موسم", navHistory:"تاريخ", navDemo:"ڊيمو", navSettings:"ترتيبون",
+                qaVoice:"آواز سان پڇو", qaCamera:"ڪيمرا", qaUpload:"اپ لوڊ",
+                metricAnalysesLabel:"تجزا", metricLangsLabel:"ٻوليون", metricSourcesLabel:"ذريعا", metricCropsLabel:"فصلون",
+                noHistory:"اڃان تائين ڪا تاريخ ناهي.", connectionError:"سرور سان رابطو نه ٿي سگهيو. مهرباني ڪري انٽرنيٽ چڪاس ڪريو.",
+                listening:"ٻڌي رهيو آهي...", speakPrompt:"پنهنجو زرعي سوال ڳالهايو",
+                emptyQuestion:"مهرباني ڪري پهرين هڪ سوال لکو يا ڳالهايو."
+            },
+            pa: {
+                welcomeTitle: "جیت آیاں، کسان!", welcomeText: "شروع کرن لئی اپنی زبان چنو۔",
+                askLabel: "اپنا زرعی سوال پچھو", sendLabel: "جواب حاصل کرو",
+                imgTitle: "فصل / بیماری دی جانچ", uploadTitle: "تصویر اپ لوڈ کرن لئی تھپتھپاؤ",
+                uploadDesc: "متاثرہ پودے دی صاف تصویر لو", imgQLabel: "تصویر بارے اختیاری سوال",
+                analyzeLabel: "تصویر دی جانچ کرو", spinnerText: "توہادی درخواست دی جانچ ہو رہی اے...",
+                marketTitle: "مارکیٹ انٹیلیجنس", marketCropLabel: "فصل چنو", marketBtn: "قیمتاں حاصل کرو",
+                weatherTitle: "موسم تے خطرے دی الرٹ", weatherRegionLabel: "علاقہ چنو", weatherBtn: "موسم حاصل کرو",
+                historyTitle: "جانچ دی تاریخ", demoTitle: "جج ڈیمو موڈ", demoBtn: "ڈیمو سیناریو چلاؤ",
+                metricsTitle: "اثر دے میٹرکس", settingsTitle: "سسٹم دی حالت", changeLangBtn: "زبان بدلو",
+                navHome:"ہوم", navMarket:"مارکیٹ", navWeather:"موسم", navHistory:"تاریخ", navDemo:"ڈیمو", navSettings:"ترتیبات",
+                qaVoice:"آواز نال پچھو", qaCamera:"کیمرہ", qaUpload:"اپ لوڈ",
+                metricAnalysesLabel:"جانچاں", metricLangsLabel:"زباناں", metricSourcesLabel:"ذرائع", metricCropsLabel:"فصلاں",
+                noHistory:"ہلے کوئی تاریخ نہیں۔", connectionError:"سرور نال رابطہ نہیں ہو سکیا۔ براہ کرم انٹرنیٹ چیک کرو۔",
+                listening:"سن رہیا اے...", speakPrompt:"اپنا زرعی سوال بولو",
+                emptyQuestion:"براہ کرم پہلے اک سوال لکھو یا بولو۔"
+            },
+            ps: {
+                welcomeTitle: "ښهلا سړه، کروندګره!", welcomeText: "د پیل لپاره خپله ژبه وټاکئ.",
+                askLabel: "خپله کرونده پوښتنه وکړئ", sendLabel: "ځواب ترلاسه کړئ",
+                imgTitle: "حاصل / ناروغي تحلیل", uploadTitle: "د عکس پورته کولو لپاره څکئ",
+                uploadDesc: "د اغیزمن بوټي روښانه عکس واخلئ", imgQLabel: "د عکس په اړه اختیاري پوښتنه",
+                analyzeLabel: "عکس تحلیل کړئ", spinnerText: "ستاسو غوښتنه تحلیلېږي...",
+                marketTitle: "د بازار استخبارات", marketCropLabel: "حاصل وټاکئ", marketBtn: "قیمتونه ترلاسه کړئ",
+                weatherTitle: " موسم او خطر خبرتیاوې", weatherRegionLabel: "سیمه وټاکئ", weatherBtn: "موسم ترلاسه کړئ",
+                historyTitle: "د تحلیل تاریخ", demoTitle: "د جج ډیمو حالت", demoBtn: "ډیمو سناریو پیل کړئ",
+                metricsTitle: "د اغیز متریکس", settingsTitle: "د سیسټم وضعیت", changeLangBtn: "ژبه بدل کړئ",
+                navHome:"کور", navMarket:"بازار", navWeather:"موسم", navHistory:"تاریخ", navDemo:"ډیمو", navSettings:"ترتیبات",
+                qaVoice:"د غږ سره پوښتنه", qaCamera:"کیمره", qaUpload:"پورته کول",
+                metricAnalysesLabel:"تحلیلونه", metricLangsLabel:"ژبې", metricSourcesLabel:"سرچینې", metricCropsLabel:"حاصلات",
+                noHistory:"تر اوسه هیڅ تاریخ نشته.", connectionError:"سرور سره نه شي نښلېدلی. مهرباني وکړئ خپل انټرنټ وګورئ.",
+                listening:"اورېدل...", speakPrompt:"خپله کرونده پوښتنه ووایاست",
+                emptyQuestion:"مهرباني وکړئ لومړی یوه پوښتنه ولیکئ یا ووایاست."
+            },
+            bal: {
+                welcomeTitle: "بیت، کسانت!", welcomeText: "شروع کنگ لے تئی زبان انتخاب کنیت.",
+                askLabel: "تئی کشاورزی سوال بݔرس", sendLabel: "جواب گِر",
+                imgTitle: "کشت / مرض تشخیص", uploadTitle: "عکس اپ لوڈ کنگ لے تپ کنیت",
+                uploadDesc: "متاثرہ بوٹءِ صاف عکس بݔر", imgQLabel: "عکسءَ متعلق اختیاری سوال",
+                analyzeLabel: "عکسءَ تجزیہ کنیت", spinnerText: "تئی درخواستءِ تجزیہ کنگ بیّت...",
+                marketTitle: "بازارءِ اطلاعات", marketCropLabel: "کشت انتخاب کنیت", marketBtn: "قیمتاں گِر",
+                weatherTitle: "موسم ءُ خطرے ئلرٹ", weatherRegionLabel: "علاقہ انتخاب کنیت", weatherBtn: "موسم گِر",
+                historyTitle: "تجزیہءِ تاریخ", demoTitle: "جج ڈیمو موڈ", demoBtn: "ڈیمو منظرہ چل کنیت",
+                metricsTitle: "اثرءِ پیمانہء", settingsTitle: "سسٹمءِ حالت", changeLangBtn: "زبانءَ تبدیل کنیت",
+                navHome:"گھر", navMarket:"بازار", navWeather:"موسم", navHistory:"تاریخ", navDemo:"ڈیمو", navSettings:"ترتیبات",
+                qaVoice:"آوازءَ سوال", qaCamera:"کیمرہ", qaUpload:"اپ لوڈ",
+                metricAnalysesLabel:"تجزیات", metricLangsLabel:"زباناں", metricSourcesLabel:"زرائع", metricCropsLabel:"کشتاں",
+                noHistory:"ھاتر تاریخ نہ بیت.", connectionError:"سرورءَ گوں رابطہ نہ بیت. ڈیوو交会 انٹرنیٹءَ چک کنیت.",
+                listening:"گوش بیت...", speakPrompt:"تئی کشاورزی سوال بݔر",
+                emptyQuestion:"ڈیوو پہ گیشی یک سوال لِکت یا بݔر."
+            }
+        };
+
+        function t(key, fallback='') {
+            const set = UI_STRINGS[currentLang || 'en'] || UI_STRINGS['en'];
+            return set[key] || UI_STRINGS['en'][key] || fallback;
+        }
+
+        function applyTranslations() {
+            const keys = Object.keys(UI_STRINGS['en']);
+            keys.forEach(key => {
+                const el = document.getElementById(key);
+                if (el) el.textContent = t(key);
+            });
+            document.getElementById('questionInput').placeholder = t('askLabel', 'Ask your farming question');
+            document.getElementById('imageQuestion').placeholder = t('imgQLabel', 'Optional question about image');
+        }
+
+        // ── Init ──
+        async function init() {
+            updateConnStatus('connecting', 'Connecting...');
+            try {
+                const res = await fetchWithTimeout(`${API}/api/languages`, {}, 8000);
+                const data = await res.json();
+                const grid = document.getElementById('langGrid');
+                grid.innerHTML = '';
+                data.languages.forEach(lang => {
+                    const btn = document.createElement('div');
+                    btn.className = 'lang-btn';
+                    btn.innerHTML = `<span class="native" dir="${lang.rtl?'rtl':'ltr'}">${lang.name_native}</span><span class="english">${lang.name_en}</span>`;
+                    btn.onclick = () => selectLanguage(lang.code, lang.name_native, lang.rtl);
+                    grid.appendChild(btn);
+                });
+                updateConnStatus('online', 'Connected');
+                setTimeout(() => updateConnStatus('', ''), 2000);
+            } catch(e) {
+                console.error('Init failed', e);
+                updateConnStatus('offline', t('connectionError'));
+                showRetry('pageLanguage', 'Failed to load languages. Tap to retry.', init);
+            }
+        }
+
+        // ── Network helpers ──
+        function fetchWithTimeout(url, options={}, timeout=15000) {
+            return Promise.race([
+                fetch(url, options),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), timeout))
+            ]);
+        }
+
+        async function apiPost(endpoint, body) {
+            updateConnStatus('connecting', 'Sending...');
+            try {
+                const res = await fetchWithTimeout(`${API}${endpoint}`, {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify(body)
+                });
+                updateConnStatus('online', 'Connected');
+                setTimeout(() => updateConnStatus('', ''), 1500);
+                if (!res.ok) {
+                    const err = await res.json().catch(()=>({}));
+                    throw new Error(err.detail || `Server error ${res.status}`);
+                }
+                return await res.json();
+            } catch(e) {
+                updateConnStatus('offline', t('connectionError'));
+                throw e;
+            }
+        }
+
+        async function apiGet(endpoint) {
+            updateConnStatus('connecting', 'Loading...');
+            try {
+                const res = await fetchWithTimeout(`${API}${endpoint}`, {}, 10000);
+                updateConnStatus('online', 'Connected');
+                setTimeout(() => updateConnStatus('', ''), 1500);
+                if (!res.ok) throw new Error(`Server error ${res.status}`);
+                return await res.json();
+            } catch(e) {
+                updateConnStatus('offline', t('connectionError'));
+                throw e;
+            }
+        }
+
+        function updateConnStatus(type, message) {
+            const bar = document.getElementById('connStatus');
+            bar.className = 'conn-status' + (type ? ' ' + type : '');
+            bar.textContent = message;
+            isOnline = type !== 'offline';
+        }
+
+        function showRetry(containerId, message, retryFn) {
+            const container = document.getElementById(containerId);
+            const existing = container.querySelector('.retry-box');
+            if (existing) existing.remove();
+            const box = document.createElement('div');
+            box.className = 'error-box retry-box';
+            box.style.cursor = 'pointer';
+            box.innerHTML = `<strong>⚠️ ${message}</strong>`;
+            box.onclick = retryFn;
+            container.appendChild(box);
+        }
+
+        // ── Language ──
+        async function selectLanguage(code, nativeName, rtl) {
+            showSpinner(true, 'Setting language...');
+            try {
+                const data = await apiPost('/api/language/select', {language: code});
+                currentLang = code;
+                currentLangName = nativeName;
+                document.documentElement.dir = rtl ? 'rtl' : 'ltr';
+                document.getElementById('langBadge').textContent = nativeName;
+                document.getElementById('langBadge').classList.remove('hidden');
+                document.getElementById('appSubtitle').textContent = data.name_en;
+                applyTranslations();
+                document.getElementById('bottomNav').classList.remove('hidden');
+                showPage('pageHome');
+                loadStats();
+            } catch(e) {
+                alert('Error selecting language: ' + e.message);
+            } finally {
+                showSpinner(false);
+            }
+        }
+
+        function resetLanguage() {
+            currentLang = null;
+            document.documentElement.dir = 'ltr';
+            document.getElementById('bottomNav').classList.add('hidden');
+            document.getElementById('langBadge').classList.add('hidden');
+            showPage('pageLanguage');
+            init();
+        }
+
+        // ── Navigation ──
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            const nav = document.querySelector(`.nav-item[data-page="${pageId}"]`);
+            if(nav) nav.classList.add('active');
+            if (pageId === 'pageHistory') fetchHistory();
+            if (pageId === 'pageSettings') fetchStatus();
+        }
+
+        // ── Voice Input ──
+        function startVoiceInput() {
+            const input = document.getElementById('questionInput');
+            const btn = document.getElementById('voiceBtn');
+
+            // If running inside Android app, use native speech recognition
+            if (typeof AndroidBridge !== 'undefined' && AndroidBridge.startSpeechRecognition) {
+                btn.classList.add('listening');
+                try {
+                    AndroidBridge.startSpeechRecognition(currentLang || 'en');
+                    AndroidBridge.showToast?.(t('listening'));
+                } catch(e) {
+                    btn.classList.remove('listening');
+                    alert('Voice input failed: ' + e.message);
+                }
+                return;
+            }
+
+            // Fallback for browsers with Web Speech API
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('Voice input is not supported in this browser. Please type your question.');
+                return;
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            recognition.lang = getSpeechLang(currentLang);
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            btn.classList.add('listening');
+            recognition.start();
+
+            recognition.onresult = (event) => {
+                const text = event.results[0][0].transcript;
+                input.value = text;
+                btn.classList.remove('listening');
+                setTimeout(() => submitVoiceQuery(), 400);
+            };
+
+            recognition.onerror = (event) => {
+                btn.classList.remove('listening');
+                alert('Speech recognition error: ' + event.error);
+            };
+
+            recognition.onend = () => {
+                btn.classList.remove('listening');
+            };
+        }
+
+        function getSpeechLang(lang) {
+            const map = { ur:'ur-PK', en:'en-US', sd:'sd-PK', pa:'pa-PK', ps:'ps-AF', bal:'bal-UZ' };
+            return map[lang] || 'en-US';
+        }
+
+        // Called from Android after speech recognition
+        window.onVoiceResult = function(text) {
+            document.getElementById('voiceBtn').classList.remove('listening');
+            if (text && text.trim()) {
+                document.getElementById('questionInput').value = text.trim();
+                setTimeout(() => submitVoiceQuery(), 500);
+            }
+        };
+
+        // ── Image Handling ──
+        function openNativeCamera() {
+            if (typeof AndroidBridge !== 'undefined' && AndroidBridge.openCamera) {
+                AndroidBridge.openCamera();
+            } else {
+                document.getElementById('cameraInput').click();
+            }
+        }
+
+        function handleImageSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                selectedImageBase64 = e.target.result.split(',')[1];
+                const preview = document.getElementById('imagePreview');
+                preview.src = e.target.result;
+                preview.classList.add('visible');
+                document.getElementById('analyzeBtn').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Native camera injects this global
+        window.setCapturedImage = function(base64) {
+            selectedImageBase64 = base64;
+            document.getElementById('imagePreview').src = 'data:image/jpeg;base64,' + base64;
+            document.getElementById('imagePreview').classList.add('visible');
+            document.getElementById('analyzeBtn').classList.remove('hidden');
+        };
+
+        // ── Queries ──
+        async function submitVoiceQuery() {
+            const text = document.getElementById('questionInput').value.trim();
+            if (!text) { alert(t('emptyQuestion')); return; }
+            showSpinner(true, t('spinnerText'));
+            try {
+                const data = await apiPost('/api/query/voice', {text, language: currentLang || 'en'});
+                renderResult(data);
+            } catch(e) { renderError(e.message); }
+            showSpinner(false);
+        }
+
+        async function submitImageQuery() {
+            if (!selectedImageBase64) { alert('Please select or capture an image.'); return; }
+            const question = document.getElementById('imageQuestion').value.trim();
+            showSpinner(true, t('spinnerText'));
+            try {
+                const data = await apiPost('/api/query/image', {
+                    image_base64: selectedImageBase64,
+                    question,
+                    language: currentLang || 'en',
+                    input_type: 'upload'
+                });
+                renderResult(data);
+            } catch(e) { renderError(e.message); }
+            showSpinner(false);
+        }
+
+        // ── Render Result ──
+        function renderResult(data) {
+            const area = document.getElementById('resultArea');
+            area.classList.remove('hidden');
+            if (!data.success) { area.innerHTML = `<div class="error-box">❌ ${data.error || 'Analysis failed'}</div>`; return; }
+
+            let html = '';
+            if (data.is_demo) html += '<div class="demo-banner">🧪 DEMO MODE</div>';
+
+            if (data.vision) {
+                const v = data.vision;
+                const confClass = v.confidence >= 70 ? 'high' : (v.confidence >= 50 ? 'medium' : 'low');
+                html += `<div class="card"><div class="card-title"><span class="material-icons-round">search</span>Detection Result</div>
+                    <p><strong>Detected:</strong> ${v.prediction || 'Unknown'}</p>
+                    <p style="margin-top:8px"><strong>Confidence:</strong> ${v.confidence}%</p>
+                    <div class="confidence-bar"><div class="confidence-fill ${confClass}" style="width:${Math.min(v.confidence,100)}%"></div></div>
+                    <p><strong>Risk:</strong> <span class="risk-badge risk-${v.risk_level}">${(v.risk_level || 'unknown').toUpperCase()}</span></p>
+                    <p><strong>Crop:</strong> ${v.crop_detected || 'N/A'} | <strong>Disease:</strong> ${v.disease_detected || 'None'}</p>`;
+                if (v.warnings) v.warnings.forEach(w => html += `<div class="warning-box">⚠️ ${w}</div>`);
+                html += '</div>';
+            }
+
+            const isRtl = ['ur','sd','pa','ps','bal'].includes(currentLang);
+            html += `<div class="card"><div class="card-title"><span class="material-icons-round">lightbulb</span>Recommendation</div>
+                <div class="result-box${isRtl?' rtl':''}">${formatResponse(data.response_text || '')}</div></div>`;
+
+            if (data.sources && data.sources.length) {
+                html += '<div class="card"><div class="card-title"><span class="material-icons-round">verified</span>Verified Sources</div>';
+                data.sources.forEach(s => {
+                    html += `<div class="source-card"><div class="org">🏛️ ${s.organization}</div>
+                        <div class="doc">📄 ${s.document_title}</div>
+                        <div class="meta">🔗 ${s.url || ''} | ${s.publication_date || ''}</div></div>`;
+                });
+                html += '</div>';
+            }
+
+            if (data.narration && data.narration.audio_base64) {
+                const n = data.narration;
+                html += `<div class="narration-box"><div style="font-size:0.85rem;font-weight:700;color:var(--green-900);margin-bottom:10px;display:flex;align-items:center;gap:6px"><span class="material-icons-round">volume_up</span> Auto-Narration</div>
+                    ${n.is_fallback && n.fallback_notice ? `<div class="warning-box">${n.fallback_notice}</div>` : ''}
+                    <audio id="narrationAudio" controls autoplay style="width:100%">
+                        <source src="data:${n.mime_type};base64,${n.audio_base64}" type="${n.mime_type}">
+                    </audio>
+                    <div class="narration-controls">
+                        <button onclick="document.getElementById('narrationAudio').pause()"><span class="material-icons-round" style="font-size:16px;vertical-align:middle">pause</span> Pause</button>
+                        <button onclick="document.getElementById('narrationAudio').play()"><span class="material-icons-round" style="font-size:16px;vertical-align:middle">play_arrow</span> Resume</button>
+                        <button onclick="var a=document.getElementById('narrationAudio');a.currentTime=0;a.play()"><span class="material-icons-round" style="font-size:16px;vertical-align:middle">replay</span> Replay</button>
+                        <button onclick="var a=document.getElementById('narrationAudio');a.pause();a.currentTime=0"><span class="material-icons-round" style="font-size:16px;vertical-align:middle">stop</span> Stop</button>
+                    </div></div>`;
+            }
+
+            area.innerHTML = html;
+            area.scrollIntoView({behavior:'smooth'});
+        }
+
+        function renderError(message) {
+            const area = document.getElementById('resultArea');
+            area.classList.remove('hidden');
+            area.innerHTML = `<div class="error-box">❌ ${message}</div>`;
+        }
+
+        function formatResponse(text) {
+            return text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        }
+
+        // ── Market ──
+        async function fetchMarket() {
+            const crop = document.getElementById('marketCrop').value;
+            const container = document.getElementById('marketResult');
+            container.innerHTML = '<div class="spinner active"><div class="spinner-ring"></div></div>';
+            try {
+                const data = await apiPost('/api/market', {crop});
+                let html = '';
+                if (data.disclaimer) html += `<div class="warning-box">${data.disclaimer}</div>`;
+                if (data.prices && data.prices.length) {
+                    data.prices.forEach(p => { html += `<div class="source-card"><strong>${p.market}</strong>: ${p.price} / ${p.unit} <span style="color:#757575">(${p.date})</span></div>`; });
+                }
+                html += `<p style="margin-top:10px;font-weight:600"><span class="material-icons-round" style="font-size:16px;vertical-align:middle">trending_up</span> Trend: ${(data.trend || 'stable').toUpperCase()}</p>`;
+                container.innerHTML = html;
+            } catch(e) { container.innerHTML = `<div class="error-box">${e.message}</div>`; }
+        }
+
+        // ── Weather ──
+        async function fetchWeather() {
+            const region = document.getElementById('weatherRegion').value;
+            const container = document.getElementById('weatherResult');
+            container.innerHTML = '<div class="spinner active"><div class="spinner-ring"></div></div>';
+            try {
+                const data = await apiPost('/api/weather', {region});
+                let html = `<div class="metric-grid" style="margin-bottom:12px">
+                    <div class="metric-card"><div class="metric-value">${data.temperature_c || '--'}°</div><div class="metric-label">Temp</div></div>
+                    <div class="metric-card"><div class="metric-value">${data.humidity_pct || '--'}%</div><div class="metric-label">Humidity</div></div>
+                    <div class="metric-card"><div class="metric-value" style="font-size:0.95rem">${data.condition || '--'}</div><div class="metric-label">Condition</div></div>
+                    <div class="metric-card"><div class="metric-value">${data.wind_kph || '--'}</div><div class="metric-label">Wind km/h</div></div></div>`;
+                html += `<div class="card" style="margin:0;padding:14px"><strong>📋 Advisory:</strong> ${data.agricultural_advisory || 'No advisory available.'}</div>`;
+                if (data.risk_alerts && data.risk_alerts.length) {
+                    data.risk_alerts.forEach(a => {
+                        const color = a.level === 'high' ? '#F44336' : '#FF9800';
+                        html += `<div style="background:${color}18;border-left:4px solid ${color};padding:12px;margin:8px 0;border-radius:6px"><strong>${(a.level || '').toUpperCase()}:</strong> ${a.message}</div>`;
+                    });
+                }
+                container.innerHTML = html;
+            } catch(e) { container.innerHTML = `<div class="error-box">${e.message}</div>`; }
+        }
+
+        // ── History ──
+        async function fetchHistory() {
+            const list = document.getElementById('historyList');
+            list.innerHTML = '<div class="spinner active"><div class="spinner-ring"></div></div>';
+            try {
+                const data = await apiGet('/api/history');
+                if (!data.records || !data.records.length) {
+                    list.innerHTML = `<div class="empty-state"><span class="material-icons-round">history</span><p>${t('noHistory')}</p></div>`;
+                    return;
+                }
+                list.innerHTML = data.records.map(r => `<div class="source-card"><strong>${escapeHtml(r.farmer_question?.substring(0,60) || '')}</strong><br>
+                    <small>${r.input_type || ''} | ${r.language || ''} | Conf: ${r.confidence || 0}%</small><br>
+                    <small style="color:#757575">${escapeHtml(r.response_text?.substring(0,120) || '')}...</small></div>`).join('');
+            } catch(e) { list.innerHTML = `<div class="error-box">${e.message}</div>`; }
+        }
+
+        // ── Status ──
+        async function fetchStatus() {
+            loadServerUrl();
+            const container = document.getElementById('systemStatus');
+            container.innerHTML = '<div class="spinner active"><div class="spinner-ring"></div></div>';
+            try {
+                const data = await apiGet('/api/stats');
+                const s = data.services;
+                let html = '<div style="font-size:0.9rem">';
+                Object.entries(s).forEach(([k,v]) => { const icon = v==='demo'||v==='local'?'🧪':'✅'; html += `<p style="margin:6px 0">${icon} <strong>${k}:</strong> ${v}</p>`; });
+                html += `<hr style="margin:14px 0;border-color:var(--gray-200)"><p>📚 Documents: ${data.rag?.total_documents || 0}</p><p>🌾 Crops: ${data.rag?.crops_covered || 0}</p><p>📝 Analyses: ${data.database?.total_analyses || 0}</p></div>`;
+                container.innerHTML = html;
+            } catch(e) { container.innerHTML = `<div class="error-box">${e.message}</div>`; }
+        }
+
+        async function loadStats() {
+            try {
+                const data = await apiGet('/api/stats');
+                document.getElementById('metricAnalyses').textContent = data.database?.total_analyses || 0;
+                document.getElementById('metricSources').textContent = data.rag?.total_documents || 0;
+                document.getElementById('metricCrops').textContent = data.rag?.crops_covered || 0;
+            } catch(e) {}
+        }
+
+        // ── Server URL Configuration ──
+        function loadServerUrl() {
+            try {
+                const saved = localStorage.getItem('kka_server_url');
+                const input = document.getElementById('serverUrlInput');
+                if (saved && input) input.value = saved;
+            } catch(e) {}
+        }
+
+        async function saveServerUrl() {
+            const input = document.getElementById('serverUrlInput');
+            const status = document.getElementById('serverUrlStatus');
+            let url = input.value.trim();
+            if (!url) {
+                // Reset to default
+                API = (typeof AndroidBridge !== 'undefined' && AndroidBridge.getApiBaseUrl) ? AndroidBridge.getApiBaseUrl() : window.location.origin;
+                localStorage.removeItem('kka_server_url');
+                status.innerHTML = '<span style="color:var(--green-800)">✅ Reset to default URL.</span>';
+                return;
+            }
+            if (url.endsWith('/')) url = url.slice(0, -1);
+            status.innerHTML = '<span style="color:var(--gray-600)">Testing connection...</span>';
+            try {
+                const test = await fetchWithTimeout(`${url}/api/languages`, {}, 8000);
+                if (test.ok) {
+                    API = url;
+                    localStorage.setItem('kka_server_url', url);
+                    status.innerHTML = '<span style="color:var(--green-800)">✅ Connected! Server URL saved.</span>';
+                } else {
+                    status.innerHTML = '<span style="color:var(--red)">❌ Server reachable but returned error.</span>';
+                }
+            } catch(e) {
+                status.innerHTML = '<span style="color:var(--red)">❌ Cannot connect: ' + e.message + '</span>';
+            }
+        }
+
+        function applySavedServerUrl() {
+            try {
+                const saved = localStorage.getItem('kka_server_url');
+                if (saved) API = saved;
+            } catch(e) {}
+        }
+
+        // ── Demo ──
+        async function runDemo() {
+            if (!currentLang) await selectLanguage('ur', 'اردو', true);
+            showPage('pageHome');
+            document.getElementById('questionInput').value = 'My wheat crop has orange-brown spots on leaves. What is the disease and how to treat it?';
+            await submitVoiceQuery();
+        }
+
+        // ── Helpers ──
+        function showSpinner(show, text) {
+            const spinner = document.getElementById('spinner');
+            if (text) document.getElementById('spinnerText').textContent = text;
+            spinner.classList.toggle('active', show);
+            if (show) document.getElementById('resultArea').classList.add('hidden');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ── Online/Offline detection ──
+        window.addEventListener('online', () => updateConnStatus('online', 'Back online'));
+        window.addEventListener('offline', () => updateConnStatus('offline', 'No internet connection'));
+
+        // ── Start ──
+        init();
+    </script>
+</body>
+</html>

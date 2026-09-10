@@ -1,0 +1,29 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Green background circle -->
+    <path
+        android:fillColor="#1B5E20"
+        android:pathData="M54,54m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0"/>
+    <!-- Wheat/plant stalk -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,30 L54,78 M54,40 L44,34 M54,40 L64,34 M54,50 L42,44 M54,50 L66,44 M54,60 L44,54 M54,60 L64,54 M54,70 L46,64 M54,70 L62,64"
+        android:strokeWidth="2.5"
+        android:strokeColor="#FFFFFF"/>
+    <!-- Leaves -->
+    <path
+        android:fillColor="#66BB6A"
+        android:pathData="M54,35 Q48,30 44,34 Q48,36 54,35Z"/>
+    <path
+        android:fillColor="#66BB6A"
+        android:pathData="M54,35 Q60,30 64,34 Q60,36 54,35Z"/>
+    <path
+        android:fillColor="#66BB6A"
+        android:pathData="M54,48 Q46,42 42,46 Q46,48 54,48Z"/>
+    <path
+        android:fillColor="#66BB6A"
+        android:pathData="M54,48 Q62,42 66,46 Q62,48 54,48Z"/>
+</vector>

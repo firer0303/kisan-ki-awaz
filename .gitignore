@@ -1,0 +1,41 @@
+# Kisan Ki Awaz - Git Ignore
+# ==========================
+
+# Environment
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data / uploads
+uploads/*.jpg
+uploads/*.png
+uploads/*.jpeg
+*.db
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage

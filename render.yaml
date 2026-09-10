@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: kisan-ki-awaz-api
+    env: docker
+    plan: standard
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: WEATHER_API_KEY
+        sync: false
+    healthCheckPath: /

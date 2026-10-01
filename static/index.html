@@ -802,7 +802,7 @@
             }
 
             const isRtl = ['ur','sd','pa','ps','bal'].includes(currentLang);
-            html += `<div class="card"><div class="card-title"><span class="material-icons-round">lightbulb</span>Recommendation</div>
+            html += `<div class="card"><div class="card-title"><span class="material-icons-round">lightbulb</span>${({ur:"تشخیص / جواب",sd:"جائزو / جواب",pa:"جائزہ / جواب",ps:"ارزونه / ځواب",bal:"جائزگ / جواب",en:"Assessment / Answer"}[currentLang] || "Assessment / Answer")}</div>
                 <div class="result-box${isRtl?' rtl':''}">${formatResponse(data.response_text || '')}</div></div>`;
 
             if (data.sources && data.sources.length) {

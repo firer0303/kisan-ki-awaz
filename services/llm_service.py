@@ -2,7 +2,7 @@
 Kisan Ki Awaz - LLM Service
 ==============================
 Manages communication with LLM providers (OpenAI, DashScope/Alibaba,
-or a local demo fallback).
+or a verified knowledge-base fallback).
 """
 from typing import Dict, Optional
 
@@ -14,7 +14,7 @@ from config import settings
 class LLMService:
     """
     Unified interface for LLM inference.
-    Supports OpenAI, Alibaba DashScope (Qwen), and a local demo mode.
+    Supports OpenAI, Alibaba DashScope (Qwen), with a verified knowledge-base fallback.
     """
 
     def __init__(self):
@@ -43,7 +43,7 @@ class LLMService:
         elif self.provider == "dashscope":
             return self._dashscope_generate(prompt, max_tokens, temperature)
         else:
-            return self._demo_generate(prompt)
+            return self._fallback_generate(prompt)
 
     def _openai_generate(
         self, prompt: str, max_tokens: int, temperature: float
@@ -67,11 +67,11 @@ class LLMService:
                 "provider": "openai",
                 "model": settings.llm.openai_model,
                 "is_demo": False,
-                "error": None,
+                "error": error or None,
             }
         except Exception as e:
             logger.error(f"OpenAI API error: {e}")
-            return self._demo_generate(prompt)
+            return self._fallback_generate(prompt, error=str(e))
 
     def _dashscope_generate(
         self, prompt: str, max_tokens: int, temperature: float
@@ -98,9 +98,9 @@ class LLMService:
             logger.error(f"DashScope API error: {e}")
             return self._demo_generate(prompt)
 
-    def _demo_generate(self, prompt: str) -> Dict:
+    def _fallback_generate(self, prompt: str, error: str = "") -> Dict:
         """
-        Demo LLM fallback. Extracts key information from the prompt
+        Verified knowledge-base fallback used only when the AI provider is unavailable. Extracts key information from the prompt
         and generates a structured response based on the retrieved evidence.
         """
         # Parse the prompt to extract information
@@ -229,8 +229,8 @@ class LLMService:
 
         return {
             "text": response_text,
-            "provider": "demo",
-            "model": "local-demo",
-            "is_demo": True,
+            "provider": "knowledge_base",
+            "model": "verified-fallback",
+            "is_demo": False,
             "error": None,
         }

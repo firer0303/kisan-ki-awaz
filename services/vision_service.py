@@ -33,7 +33,7 @@ class VisionService:
             result = self.model.predict(processed)
         except Exception as e:
             logger.exception("Vision model inference failed")
-            return {"success": False, "error": f"Image analysis failed: {str(e)}",
+            return {"success": False, "error": "Image analysis service is temporarily unavailable. Please try again with a clear JPG or PNG image.",
                     "prediction": None, "confidence": 0, "risk_level": "unknown",
                     "warnings": ["The image could not be analyzed. Please try a clear JPG or PNG image."],
                     "is_demo": self._is_demo}

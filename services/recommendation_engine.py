@@ -39,8 +39,13 @@ class RecommendationEngine:
     def session_id(self) -> str:
         return self._session_id
 
-    def _localize_response(self, response_text: str, lang_code: str) -> tuple:
-        """Always return formal output in the farmer's selected language."""
+    def _localize_response(self, response_text: str, lang_code: str, fallback_prompt: str = "") -> tuple:
+        """Always return formal output in the farmer's selected language.
+
+        If an external translator is unavailable/rate-limited, regenerate the
+        verified knowledge-base response directly in the selected language
+        instead of returning English.
+        """
         if not response_text or lang_code == "en":
             return response_text, {"translated_text": response_text, "is_fallback": False}
 
@@ -49,11 +54,36 @@ class RecommendationEngine:
             translated = self.translation_service.translate(
                 response_text, target_lang=lang_code, source_lang="en"
             )
-            if translated.get("translated_text"):
+            if translated.get("translated_text") and not translated.get("is_fallback"):
                 response_text = translated["translated_text"]
                 translation_info = translated
+            elif fallback_prompt:
+                localized = self.llm_service._fallback_generate(fallback_prompt)
+                if localized.get("text"):
+                    response_text = localized["text"]
+                    translation_info = {
+                        "translated_text": response_text,
+                        "source_lang": "en",
+                        "target_lang": lang_code,
+                        "is_fallback": True,
+                        "error": translated.get("error"),
+                    }
         except Exception as exc:
             logger.warning(f"Selected-language translation failed: {exc}")
+            if fallback_prompt:
+                try:
+                    localized = self.llm_service._fallback_generate(fallback_prompt)
+                    if localized.get("text"):
+                        response_text = localized["text"]
+                        translation_info = {
+                            "translated_text": response_text,
+                            "source_lang": "en",
+                            "target_lang": lang_code,
+                            "is_fallback": True,
+                            "error": str(exc),
+                        }
+                except Exception as fallback_exc:
+                    logger.warning(f"Localized fallback generation failed: {fallback_exc}")
 
         # Final UI-safe heading enforcement. This also works if the translator
         # leaves Markdown headings in English.
@@ -95,7 +125,11 @@ class RecommendationEngine:
         evidence = self.rag_service.retrieve_evidence(text, top_k=3)
         prompt = self.rag_service.build_rag_prompt(text, evidence, language=lang_code)
         llm_result = self.llm_service.generate(prompt)
-        response_text, translation_info = self._localize_response(llm_result.get("text", "Unable to generate response."), lang_code)
+        response_text, translation_info = self._localize_response(
+            llm_result.get("text", "Unable to generate response."),
+            lang_code,
+            fallback_prompt=prompt,
+        )
         narration = self.narration_service.prepare_narration(response_text)
         return {"success": True, "response_text": response_text, "sources": evidence.get("citations", []), "evidence_count": evidence.get("evidence_count", 0), "narration_html": self.narration_service.get_autoplay_html(narration), "narration": narration, "translation_info": translation_info, "llm_provider": llm_result.get("provider", "unknown"), "is_demo": llm_result.get("is_demo", False), "input_type": "voice"}
 
@@ -123,7 +157,9 @@ class RecommendationEngine:
                 evidence=evidence, image_analysis=image_analysis, language=lang_code
             )
             llm_result = self.llm_service.generate(prompt)
-            response_text, translation_info = self._localize_response(llm_result.get("text", ""), lang_code)
+            response_text, translation_info = self._localize_response(
+                llm_result.get("text", ""), lang_code, fallback_prompt=prompt
+            )
             llm_provider = llm_result.get("provider", "unknown")
             is_demo = is_demo or bool(llm_result.get("is_demo", False))
         except Exception as exc:

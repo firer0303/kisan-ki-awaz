@@ -1,208 +1,153 @@
 """
 Kisan Ki Awaz - Vision Model Interface
 ========================================
-Abstract interface and demo implementation for agricultural
-computer-vision (crop disease / pest detection).
-
-Designed so a fine-tuned model can replace the demo model
-without changing any calling code.
+Agricultural image classification interface with an OpenAI vision backend
+and a safe local fallback.
 """
+import base64
+import json
 import random
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 import numpy as np
 from PIL import Image
 
+from config import settings
+
 
 class VisionModelInterface(ABC):
-    """Abstract interface for all crop-disease vision models."""
-
     @abstractmethod
     def predict(self, image: Image.Image) -> Dict:
-        """
-        Run inference on a single image.
-
-        Returns:
-            Dict with keys:
-            - prediction: str (top predicted class)
-            - confidence: float (0-100)
-            - all_predictions: List[Tuple[str, float]]
-            - risk_level: str ("low" | "medium" | "high" | "critical")
-            - crop_detected: str
-            - disease_detected: str or None
-        """
         ...
 
     @abstractmethod
     def get_class_labels(self) -> List[str]:
-        """Return all class labels the model can predict."""
         ...
 
 
-# ──────────────────────────────────────────────────────────────
-# Demo model (used when no real model is configured)
-# ──────────────────────────────────────────────────────────────
-
-# Realistic crop-disease class labels (matching a fine-tuned model output)
 CROP_DISEASE_LABELS = [
-    "Wheat - Leaf Rust",
-    "Wheat - Stripe Rust",
-    "Wheat - Healthy",
-    "Rice - Blast",
-    "Rice - Brown Spot",
-    "Rice - Healthy",
-    "Cotton - Bollworm Damage",
-    "Cotton - Leaf Curl Virus",
-    "Cotton - Healthy",
-    "Maize - Fall Armyworm",
-    "Maize - Northern Leaf Blight",
-    "Maize - Healthy",
-    "Tomato - Late Blight",
-    "Tomato - Early Blight",
-    "Tomato - Leaf Curl",
-    "Tomato - Healthy",
-    "Potato - Late Blight",
-    "Potato - Early Blight",
-    "Potato - Healthy",
-    "Citrus - Canker",
-    "Citrus - Greening (HLB)",
-    "Citrus - Healthy",
-    "Mango - Anthracnose",
-    "Mango - Sudden Death",
-    "Mango - Healthy",
-    "Sugarcane - Red Rot",
-    "Sugarcane - Smut",
-    "Sugarcane - Healthy",
-    "Chili - Leaf Curl Virus",
-    "Chili - Anthracnose",
-    "Chili - Healthy",
+    "Wheat - Leaf Rust", "Wheat - Stripe Rust", "Wheat - Healthy",
+    "Rice - Blast", "Rice - Brown Spot", "Rice - Healthy",
+    "Cotton - Bollworm Damage", "Cotton - Leaf Curl Virus", "Cotton - Healthy",
+    "Maize - Fall Armyworm", "Maize - Northern Leaf Blight", "Maize - Healthy",
+    "Tomato - Late Blight", "Tomato - Early Blight", "Tomato - Leaf Curl", "Tomato - Healthy",
+    "Potato - Late Blight", "Potato - Early Blight", "Potato - Healthy",
+    "Citrus - Canker", "Citrus - Greening (HLB)", "Citrus - Healthy",
+    "Mango - Anthracnose", "Mango - Sudden Death", "Mango - Healthy",
+    "Sugarcane - Red Rot", "Sugarcane - Smut", "Sugarcane - Healthy",
+    "Chili - Leaf Curl Virus", "Chili - Anthracnose", "Chili - Healthy",
 ]
 
-# Mapping from class label -> crop, disease, risk
-_CLASS_METADATA: Dict[str, Dict] = {}
-for _label in CROP_DISEASE_LABELS:
-    _parts = _label.split(" - ", 1)
-    _crop = _parts[0].strip()
-    _disease = _parts[1].strip() if len(_parts) > 1 else "Unknown"
-    _is_healthy = "Healthy" in _disease
-    _CLASS_METADATA[_label] = {
-        "crop": _crop,
-        "disease": _disease if not _is_healthy else None,
-        "risk_level": "low" if _is_healthy else random.choice(["medium", "high"]),
+_CLASS_METADATA = {}
+for label in CROP_DISEASE_LABELS:
+    crop, disease = label.split(" - ", 1)
+    healthy = disease == "Healthy"
+    _CLASS_METADATA[label] = {
+        "crop": crop,
+        "disease": None if healthy else disease,
+        "risk_level": "low" if healthy else "medium",
     }
-# Fix risk levels deterministically for the demo
-for _label, _meta in _CLASS_METADATA.items():
-    if _meta["disease"] is None:
-        _meta["risk_level"] = "low"
-    elif any(
-        kw in _label
-        for kw in ["Blast", "Red Rot", "Sudden Death", "Greening", "Armyworm"]
-    ):
-        _meta["risk_level"] = "high"
-    elif any(kw in _label for kw in ["Rust", "Blight", "Canker", "Curl", "Rot"]):
-        _meta["risk_level"] = "medium"
-    else:
-        _meta["risk_level"] = "medium"
+
+
+class OpenAIVisionModel(VisionModelInterface):
+    """Real image analysis using the configured OpenAI multimodal model."""
+
+    def __init__(self):
+        self.model = settings.llm.openai_model or "gpt-4o"
+
+    def predict(self, image: Image.Image) -> Dict:
+        from openai import OpenAI
+
+        image = image.convert("RGB")
+        image.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
+        import io
+        buffer = io.BytesIO()
+        image.save(buffer, format="JPEG", quality=85)
+        data_url = "data:image/jpeg;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
+
+        prompt = """You are an agricultural plant-disease image analyst for Pakistan.
+Analyze the supplied plant/crop image carefully. Do NOT invent a disease when the image
+is unclear. Identify the crop and the most likely visible disease/pest/problem if possible.
+Return ONLY valid JSON with these keys:
+{"crop_detected":"...","disease_detected":"... or null","prediction":"crop - disease or crop - Healthy","confidence":0-100,"risk_level":"low|medium|high|critical","reason":"brief visual evidence","uncertain":true|false}
+Use confidence conservatively. If the image cannot support disease identification, set
+uncertain=true, disease_detected=null, confidence<=35 and explain why in reason."""
+
+        client = OpenAI(api_key=settings.llm.openai_api_key)
+        response = client.chat.completions.create(
+            model=self.model,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": data_url}},
+                ],
+            }],
+            max_tokens=500,
+            temperature=0.1,
+        )
+        raw = response.choices[0].message.content or "{}"
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        result = json.loads(raw)
+        confidence = max(0.0, min(100.0, float(result.get("confidence", 0))))
+        crop = str(result.get("crop_detected") or "Unknown")
+        disease = result.get("disease_detected") or None
+        prediction = str(result.get("prediction") or (f"{crop} - {disease}" if disease else f"{crop} - Unknown"))
+        risk = str(result.get("risk_level", "unknown")).lower()
+        return {
+            "prediction": prediction,
+            "confidence": round(confidence, 1),
+            "all_predictions": [(prediction, round(confidence, 1))],
+            "risk_level": risk,
+            "crop_detected": crop,
+            "disease_detected": disease,
+            "reason": result.get("reason", ""),
+            "uncertain": bool(result.get("uncertain", confidence < 50)),
+            "is_demo": False,
+        }
+
+    def get_class_labels(self) -> List[str]:
+        return list(CROP_DISEASE_LABELS)
 
 
 class DemoVisionModel(VisionModelInterface):
-    """
-    Demo vision model that simulates crop-disease classification.
-
-    In production, replace this with:
-    - A fine-tuned ResNet/EfficientNet model via torch
-    - Alibaba Cloud Vision API
-    - Hugging Face pipeline with a crop-disease model
-
-    The demo model analyzes basic image properties (color histograms,
-    texture) to produce plausible (but NOT real) predictions.
-    """
+    """Safe local fallback when no real vision API key is configured."""
 
     def __init__(self):
         self.labels = CROP_DISEASE_LABELS
         self.metadata = _CLASS_METADATA
 
     def predict(self, image: Image.Image) -> Dict:
-        """
-        Simulate prediction based on image characteristics.
-        Uses color analysis to pick plausible classes.
-        """
-        # Validate image
         if image is None:
             return self._empty_result("No image provided")
-
-        # Resize for analysis
-        img_small = image.resize((64, 64))
+        img_small = image.convert("RGB").resize((64, 64))
         pixels = np.array(img_small)
-
-        # Analyze color distribution to pick a plausible class
-        avg_r = pixels[:, :, 0].mean() if len(pixels.shape) == 3 else 128
-        avg_g = pixels[:, :, 1].mean() if len(pixels.shape) == 3 else 128
-        avg_b = pixels[:, :, 2].mean() if len(pixels.shape) == 3 else 128
-
-        # Simple heuristic: green-heavy = healthy, brown/yellow = diseased
+        avg_r, avg_g, avg_b = pixels[:, :, 0].mean(), pixels[:, :, 1].mean(), pixels[:, :, 2].mean()
         green_ratio = avg_g / (avg_r + avg_g + avg_b + 1)
-        brown_indicator = (avg_r > 120 and avg_g < 100 and avg_b < 80)
-
-        # Use image hash as seed for reproducible "predictions"
+        brown_indicator = avg_r > 120 and avg_g < 100 and avg_b < 80
         img_hash = hash(pixels.tobytes()[:100]) % 1000
         random.seed(img_hash)
-
         if green_ratio > 0.38 and not brown_indicator:
-            # Likely healthy or mild issue
-            healthy_labels = [l for l in self.labels if "Healthy" in l]
-            top_label = random.choice(healthy_labels)
+            top_label = random.choice([l for l in self.labels if "Healthy" in l])
             confidence = random.uniform(65, 92)
         elif brown_indicator:
-            # Likely disease
-            disease_labels = [
-                l
-                for l in self.labels
-                if "Healthy" not in l
-                and any(kw in l for kw in ["Rust", "Blight", "Rot", "Spot"])
-            ]
-            top_label = random.choice(disease_labels) if disease_labels else random.choice(self.labels)
-            confidence = random.uniform(45, 78)
+            candidates = [l for l in self.labels if "Healthy" not in l and any(k in l for k in ["Rust", "Blight", "Rot", "Spot"])]
+            top_label, confidence = random.choice(candidates), random.uniform(45, 78)
         else:
-            # Mixed - could be pest or disease
-            issue_labels = [l for l in self.labels if "Healthy" not in l]
-            top_label = random.choice(issue_labels)
-            confidence = random.uniform(40, 75)
-
-        # Build full prediction list
-        all_preds = [(top_label, confidence)]
-        remaining = [l for l in self.labels if l != top_label]
-        random.shuffle(remaining)
-        remaining_conf = 100 - confidence
-        for label in remaining[:4]:
-            c = remaining_conf * random.uniform(0.05, 0.3)
-            all_preds.append((label, round(c, 1)))
-            remaining_conf -= c
-
-        meta = self.metadata.get(top_label, {})
-
+            top_label, confidence = random.choice([l for l in self.labels if "Healthy" not in l]), random.uniform(40, 75)
+        meta = self.metadata[top_label]
         return {
-            "prediction": top_label,
-            "confidence": round(confidence, 1),
-            "all_predictions": all_preds,
-            "risk_level": meta.get("risk_level", "medium"),
-            "crop_detected": meta.get("crop", "Unknown"),
-            "disease_detected": meta.get("disease"),
-            "is_demo": True,
+            "prediction": top_label, "confidence": round(confidence, 1),
+            "all_predictions": [(top_label, round(confidence, 1))],
+            "risk_level": meta["risk_level"], "crop_detected": meta["crop"],
+            "disease_detected": meta["disease"], "is_demo": True,
         }
 
     def _empty_result(self, reason: str) -> Dict:
-        return {
-            "prediction": "Unable to analyze",
-            "confidence": 0,
-            "all_predictions": [],
-            "risk_level": "unknown",
-            "crop_detected": "Unknown",
-            "disease_detected": None,
-            "error": reason,
-            "is_demo": True,
-        }
+        return {"prediction": "Unable to analyze", "confidence": 0, "all_predictions": [],
+                "risk_level": "unknown", "crop_detected": "Unknown", "disease_detected": None,
+                "error": reason, "is_demo": True}
 
     def get_class_labels(self) -> List[str]:
         return list(self.labels)

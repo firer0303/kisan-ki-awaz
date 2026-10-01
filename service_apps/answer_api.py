@@ -49,7 +49,7 @@ async def image(req: ImageAnswerRequest):
     except ValueError:
         raise HTTPException(400,f"Unsupported language: {req.language}")
     e=get_engine(); e.language_service.set_language(lang)
-    vision=req.vision
+    vision=e._localize_vision_result(req.vision, req.language)
     if not vision.get("success", True):
         raise HTTPException(503, vision.get("error","Vision analysis failed"))
     crop=vision.get("crop_detected","") or "Unknown"

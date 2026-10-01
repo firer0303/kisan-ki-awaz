@@ -28,6 +28,119 @@ class TranslationService:
         self._translator = None
         logger.info("Translation service initialized")
 
+    def _localize_technical_terms(self, text: str, target_lang: str) -> str:
+        """Convert common technical/scientific terms into farmer-friendly local wording."""
+        if not text or target_lang == "en":
+            return text
+
+        terms = {
+            "ur": {
+                "Puccinia triticina": "گندم کے پتوں کا زنگ پیدا کرنے والی پھپھوندی",
+                "Wheat leaf rust": "گندم کے پتوں کا زنگ",
+                "wheat leaf rust": "گندم کے پتوں کا زنگ",
+                "circular to oval": "گول یا بیضوی",
+                "circular": "گول",
+                "oval": "بیضوی",
+                "pustules": "چھوٹے ابھرے ہوئے دانے",
+                "orange-brown pustules": "نارنجی بھورے چھوٹے ابھرے ہوئے دانے",
+                "spores": "جرثومی ذرات",
+                "fungus": "پھپھوندی",
+                "fungal disease": "پھپھوندی کی بیماری",
+                "humidity": "نمی",
+                "high humidity": "زیادہ نمی",
+                "management": "بچاؤ اور قابو پانے کے طریقے",
+                "precautions": "احتیاطی تدابیر",
+                "temperature": "درجہ حرارت",
+                "confidence": "اعتماد کی سطح",
+                "risk level": "خطرے کی سطح",
+            },
+            "sd": {
+                "Puccinia triticina": "ڪڻڪ جي پنن تي زنگ پيدا ڪندڙ ڦڦوند",
+                "Wheat leaf rust": "ڪڻڪ جي پنن جو زنگ",
+                "wheat leaf rust": "ڪڻڪ جي پنن جو زنگ",
+                "circular to oval": "گول يا بيضوي",
+                "circular": "گول",
+                "oval": "بيضوي",
+                "pustules": "ننڍڙا اڀريل داغ",
+                "orange-brown pustules": "نارنگي ڀورا ننڍڙا اڀريل داغ",
+                "spores": "جراثيمي ذرا",
+                "fungus": "ڦڦوند",
+                "fungal disease": "ڦڦوند جي بيماري",
+                "humidity": "نمي",
+                "high humidity": "وڌيڪ نمي",
+                "management": "بچاءُ ۽ ڪنٽرول جا طريقا",
+                "precautions": "احتياطي تدبيرون",
+                "temperature": "گرمي پد",
+                "confidence": "اعتماد جي سطح",
+                "risk level": "خطري جي سطح",
+            },
+            "pa": {
+                "Puccinia triticina": "گندم دے پتیاں دا زنگ پیدا کرن والی پھپھوندی",
+                "Wheat leaf rust": "گندم دے پتیاں دا زنگ",
+                "wheat leaf rust": "گندم دے پتیاں دا زنگ",
+                "circular to oval": "گول یا بیضوی",
+                "circular": "گول",
+                "oval": "بیضوی",
+                "pustules": "چھوٹے ابھرے ہوئے دانے",
+                "orange-brown pustules": "نارنجی بھورے چھوٹے ابھرے ہوئے دانے",
+                "spores": "جراثیمی ذرے",
+                "fungus": "پھپھوندی",
+                "fungal disease": "پھپھوندی دی بیماری",
+                "humidity": "نمی",
+                "high humidity": "زیادہ نمی",
+                "management": "بچاؤ تے قابو پاؤن دے طریقے",
+                "precautions": "احتیاطی تدبیراں",
+                "temperature": "درجہ حرارت",
+                "confidence": "اعتماد دی سطح",
+                "risk level": "خطرے دی سطح",
+            },
+            "ps": {
+                "Puccinia triticina": "هغه فنګس چې د غنمو د پاڼو زنګ رامنځته کوي",
+                "Wheat leaf rust": "د غنمو د پاڼو زنګ",
+                "wheat leaf rust": "د غنمو د پاڼو زنګ",
+                "circular to oval": "ګرد یا بیضوي",
+                "circular": "ګرد",
+                "oval": "بیضوي",
+                "pustules": "کوچني پورته راوتلي داغونه",
+                "orange-brown pustules": "نارنجي نسواري کوچني پورته راوتلي داغونه",
+                "spores": "جرثومي ذرات",
+                "fungus": "فنګس",
+                "fungal disease": "فنګسي ناروغي",
+                "humidity": "لندبل",
+                "high humidity": "لوړ لندبل",
+                "management": "د مخنیوي او کنټرول لارې",
+                "precautions": "احتیاطي تدابیر",
+                "temperature": "تودوخه",
+                "confidence": "د باور کچه",
+                "risk level": "د خطر کچه",
+            },
+            "bal": {
+                "Puccinia triticina": "گندمءِ پت ءِ زنگ پیدا کنوک پھپھوند",
+                "Wheat leaf rust": "گندمءِ پت ءِ زنگ",
+                "wheat leaf rust": "گندمءِ پت ءِ زنگ",
+                "circular to oval": "گول یا بیضوی",
+                "circular": "گول",
+                "oval": "بیضوی",
+                "pustules": "کوچک اُبھرین داغ",
+                "orange-brown pustules": "نارنجی بھورے اُبھرین داغ",
+                "spores": "جرثومی ذرات",
+                "fungus": "پھپھوند",
+                "fungal disease": "پھپھوندءِ بیماری",
+                "humidity": "نمی",
+                "high humidity": "زیادہ نمی",
+                "management": "بچاؤ ءُ قابو ءِ طریقہ",
+                "precautions": "احتیاطی تدبیر",
+                "temperature": "درجہ حرارت",
+                "confidence": "اعتمادءِ سطح",
+                "risk level": "خطرہ ءِ سطح",
+            },
+        }
+
+        mapping = terms.get(target_lang, {})
+        for source_term in sorted(mapping, key=len, reverse=True):
+            text = text.replace(source_term, mapping[source_term])
+        return text
+
     def _validate_selected_language(self, translated: str, target_lang: str) -> None:
         """Reject obvious English/Hindi leakage in non-English farmer output."""
         import re
@@ -85,6 +198,7 @@ class TranslationService:
         # Try deep-translator first (more reliable)
         try:
             result = self._deep_translate(text, target_code, source_lang)
+            result["translated_text"] = self._localize_technical_terms(result.get("translated_text", ""), target_lang)
             self._validate_selected_language(result.get("translated_text", ""), target_lang)
             return result
         except Exception as e:
@@ -93,6 +207,7 @@ class TranslationService:
         # Fallback: googletrans
         try:
             result = self._googletrans_translate(text, target_code, source_lang)
+            result["translated_text"] = self._localize_technical_terms(result.get("translated_text", ""), target_lang)
             self._validate_selected_language(result.get("translated_text", ""), target_lang)
             return result
         except Exception as e:
@@ -102,6 +217,7 @@ class TranslationService:
         # Markdown headings, bullets, URLs and source formatting remain usable.
         try:
             result = self._mymemory_translate(text, target_code, source_lang)
+            result["translated_text"] = self._localize_technical_terms(result.get("translated_text", ""), target_lang)
             self._validate_selected_language(result.get("translated_text", ""), target_lang)
             return result
         except Exception as e:

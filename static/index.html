@@ -566,9 +566,9 @@
         }
 
         // ── Network helpers ──
-        function fetchWithTimeout(url, options={}, timeout=60000) {
+        function fetchWithTimeout(url, options={}, timeout=120000) {
             return Promise.race([
-                fetch(url, options),
+                fetch(url, {...options, cache: 'no-store'}),
                 new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), timeout))
             ]);
         }

@@ -95,15 +95,29 @@
         .lang-welcome { text-align:center; padding:10px 0 20px; }
         .lang-welcome h2 { font-size:1.4rem; color:var(--green-900); margin-bottom:6px; }
         .lang-welcome p { color:var(--gray-600); font-size:0.92rem; }
-        .lang-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px; }
+        .lang-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:12px; }
         .lang-btn {
-            background:#fff; border:2px solid var(--gray-200); border-radius:var(--radius-lg);
-            padding:18px 12px; text-align:center; cursor:pointer; transition:all 0.2s;
-            box-shadow:var(--shadow-sm);
+            position:relative; min-height:126px; background:linear-gradient(145deg,#fff 0%,#f8fbf8 100%);
+            border:2px solid var(--gray-200); border-radius:22px; padding:18px 12px 16px;
+            text-align:center; cursor:pointer; transition:transform .2s,border-color .2s,box-shadow .2s;
+            box-shadow:0 6px 18px rgba(0,0,0,.06); overflow:hidden;
         }
-        .lang-btn:active, .lang-btn:hover { transform:translateY(-2px); border-color:var(--green-500); box-shadow:var(--shadow); }
-        .lang-btn .native { font-size:1.25rem; font-weight:700; color:var(--green-800); display:block; line-height:1.4; }
-        .lang-btn .english { font-size:0.8rem; color:var(--gray-600); margin-top:4px; }
+        .lang-btn::after {
+            content:""; position:absolute; inset:auto -25px -35px auto; width:90px; height:90px;
+            background:var(--green-50); border-radius:50%; opacity:.75;
+        }
+        .lang-btn:active { transform:scale(.98); }
+        .lang-btn:hover, .lang-btn:focus-visible { transform:translateY(-3px); border-color:var(--green-500); box-shadow:0 10px 24px rgba(27,94,32,.14); outline:none; }
+        .lang-btn.priority { border-color:#A5D6A7; box-shadow:0 8px 22px rgba(46,125,50,.10); }
+        .lang-icon { width:46px; height:46px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center;
+            border-radius:14px; background:var(--green-100); color:var(--green-800); font-size:23px; position:relative; z-index:1; }
+        .lang-btn .native { font-size:1.2rem; font-weight:800; color:var(--green-900); display:block; line-height:1.5; position:relative; z-index:1; }
+        .lang-btn .english { font-size:0.76rem; color:var(--gray-600); margin-top:5px; position:relative; z-index:1; line-height:1.25; }
+        .lang-btn .script-tag { display:inline-block; margin-top:8px; padding:3px 8px; border-radius:999px; background:var(--gray-100); color:var(--gray-600); font-size:.62rem; font-weight:700; letter-spacing:.2px; position:relative; z-index:1; }
+        @media (min-width:700px) {
+            .lang-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+            .lang-btn { min-height:138px; padding-top:20px; }
+        }
 
         /* ── Quick Actions ── */
         .quick-actions { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
@@ -516,6 +530,37 @@
             }
         };
 
+        UI_STRINGS.hi = {
+            welcomeTitle:"स्वागत है, किसान!", welcomeText:"शुरू करने के लिए अपनी भाषा चुनें।",
+            askLabel:"अपना खेती का सवाल पूछें", sendLabel:"जवाब पाएं",
+            imgTitle:"फसल / बीमारी की जांच", uploadTitle:"तस्वीर अपलोड करने के लिए टैप करें",
+            uploadDesc:"प्रभावित पौधे की साफ तस्वीर लें", imgQLabel:"तस्वीर के बारे में सवाल",
+            analyzeLabel:"तस्वीर की जांच करें", spinnerText:"आपकी जानकारी की जांच हो रही है...",
+            marketTitle:"मंडी की जानकारी", marketCropLabel:"फसल चुनें", marketBtn:"भाव देखें",
+            weatherTitle:"मौसम और खतरे की जानकारी", weatherRegionLabel:"इलाका चुनें", weatherBtn:"मौसम देखें",
+            historyTitle:"जांच का इतिहास", metricsTitle:"सिस्टम जानकारी", settingsTitle:"सिस्टम स्थिति", changeLangBtn:"भाषा बदलें",
+            navHome:"होम", navMarket:"मंडी", navWeather:"मौसम", navHistory:"इतिहास", navSettings:"सेटिंग्स",
+            qaVoice:"आवाज़ से पूछें", qaCamera:"कैमरा", qaUpload:"अपलोड",
+            metricAnalysesLabel:"जांच", metricLangsLabel:"भाषाएं", metricSourcesLabel:"स्रोत", metricCropsLabel:"फसलें",
+            noHistory:"अभी कोई इतिहास नहीं है।", connectionError:"सर्वर से कनेक्शन नहीं हो सका। इंटरनेट चेक करें।",
+            listening:"सुन रहा है...", speakPrompt:"अपना खेती का सवाल बोलें", emptyQuestion:"पहले सवाल लिखें या बोलें।"
+        };
+        UI_STRINGS['pa-hi'] = {
+            welcomeTitle:"ਜੀ ਆਇਆਂ ਨੂੰ, ਕਿਸਾਨ!", welcomeText:"ਸ਼ੁਰੂ ਕਰਨ ਲਈ ਆਪਣੀ ਭਾਸ਼ਾ ਚੁਣੋ।",
+            askLabel:"ਆਪਣਾ ਖੇਤੀ ਦਾ ਸਵਾਲ ਪੁੱਛੋ", sendLabel:"ਜਵਾਬ ਲਵੋ",
+            imgTitle:"ਫਸਲ / ਬਿਮਾਰੀ ਦੀ ਜਾਂਚ", uploadTitle:"ਤਸਵੀਰ ਅੱਪਲੋਡ ਕਰਨ ਲਈ ਟੈਪ ਕਰੋ",
+            uploadDesc:"ਪ੍ਰਭਾਵਿਤ ਪੌਦੇ ਦੀ ਸਾਫ਼ ਤਸਵੀਰ ਲਓ", imgQLabel:"ਤਸਵੀਰ ਬਾਰੇ ਸਵਾਲ",
+            analyzeLabel:"ਤਸਵੀਰ ਦੀ ਜਾਂਚ ਕਰੋ", spinnerText:"ਤੁਹਾਡੀ ਬੇਨਤੀ ਦੀ ਜਾਂਚ ਹੋ ਰਹੀ ਹੈ...",
+            marketTitle:"ਮੰਡੀ ਦੀ ਜਾਣਕਾਰੀ", marketCropLabel:"ਫਸਲ ਚੁਣੋ", marketBtn:"ਭਾਅ ਵੇਖੋ",
+            weatherTitle:"ਮੌਸਮ ਅਤੇ ਖਤਰੇ ਦੀ ਜਾਣਕਾਰੀ", weatherRegionLabel:"ਇਲਾਕਾ ਚੁਣੋ", weatherBtn:"ਮੌਸਮ ਵੇਖੋ",
+            historyTitle:"ਜਾਂਚ ਦਾ ਇਤਿਹਾਸ", metricsTitle:"ਸਿਸਟਮ ਜਾਣਕਾਰੀ", settingsTitle:"ਸਿਸਟਮ ਦੀ ਸਥਿਤੀ", changeLangBtn:"ਭਾਸ਼ਾ ਬਦਲੋ",
+            navHome:"ਹੋਮ", navMarket:"ਮੰਡੀ", navWeather:"ਮੌਸਮ", navHistory:"ਇਤਿਹਾਸ", navSettings:"ਸੈਟਿੰਗਾਂ",
+            qaVoice:"ਆਵਾਜ਼ ਨਾਲ ਪੁੱਛੋ", qaCamera:"ਕੈਮਰਾ", qaUpload:"ਅੱਪਲੋਡ",
+            metricAnalysesLabel:"ਜਾਂਚ", metricLangsLabel:"ਭਾਸ਼ਾਵਾਂ", metricSourcesLabel:"ਸਰੋਤ", metricCropsLabel:"ਫਸਲਾਂ",
+            noHistory:"ਹਾਲੇ ਕੋਈ ਇਤਿਹਾਸ ਨਹੀਂ ਹੈ।", connectionError:"ਸਰਵਰ ਨਾਲ ਕਨੈਕਸ਼ਨ ਨਹੀਂ ਹੋਇਆ। ਇੰਟਰਨੈੱਟ ਚੈੱਕ ਕਰੋ।",
+            listening:"ਸੁਣ ਰਿਹਾ ਹੈ...", speakPrompt:"ਆਪਣਾ ਖੇਤੀ ਦਾ ਸਵਾਲ ਬੋਲੋ", emptyQuestion:"ਪਹਿਲਾਂ ਸਵਾਲ ਲਿਖੋ ਜਾਂ ਬੋਲੋ।"
+        };
+
         function t(key, fallback='') {
             const set = UI_STRINGS[currentLang || 'en'] || UI_STRINGS['en'];
             return set[key] || UI_STRINGS['en'][key] || fallback;
@@ -526,6 +571,8 @@
             ur:{detected:"نتیجہ",confidence:"یقین",risk:"خطرہ",crop:"فصل",disease:"بیماری",answer:"جواب",sources:"قابلِ بھروسا ذرائع",narration:"آواز میں جواب",pause:"روکیں",resume:"جاری رکھیں",replay:"دوبارہ سنیں",stop:"بند کریں"},
             sd:{detected:"تشخيص جو نتيجو",confidence:"اعتماد",risk:"خطرو",crop:"فصل",disease:"بيماري",answer:"جائزو / جواب",sources:"تصديق ٿيل ذريعا",narration:"آواز ۾ جواب",pause:"روڪيو",resume:"جاري رکو",replay:"ٻيهر ٻڌو",stop:"بند ڪريو"},
             pa:{detected:"تشخیص دا نتیجہ",confidence:"اعتماد",risk:"خطرہ",crop:"فصل",disease:"بیماری",answer:"جائزہ / جواب",sources:"تصدیق شدہ ذرائع",narration:"آواز وچ جواب",pause:"روکو",resume:"جاری رکھو",replay:"دوبارہ سنو",stop:"بند کرو"},
+            "pa-hi":{detected:"ਜਾਂਚ ਨਤੀਜਾ",confidence:"ਭਰੋਸਾ",risk:"ਖਤਰਾ",crop:"ਫਸਲ",disease:"ਬਿਮਾਰੀ",answer:"ਜਵਾਬ",sources:"ਭਰੋਸੇਯੋਗ ਸਰੋਤ",narration:"ਆਵਾਜ਼ ਵਿੱਚ ਜਵਾਬ",pause:"ਰੋਕੋ",resume:"ਜਾਰੀ ਰੱਖੋ",replay:"ਦੁਬਾਰਾ ਸੁਣੋ",stop:"ਬੰਦ ਕਰੋ"},
+            hi:{detected:"जांच नतीजा",confidence:"विश्वास",risk:"जोखिम",crop:"फसल",disease:"बीमारी",answer:"जवाब",sources:"भरोसेमंद स्रोत",narration:"आवाज़ में जवाब",pause:"रोकें",resume:"जारी रखें",replay:"दोबारा सुनें",stop:"बंद करें"},
             ps:{detected:"د تشخیص پایله",confidence:"د باور کچه",risk:"خطر",crop:"کرنیزه",disease:"ناروغي",answer:"ارزونه / ځواب",sources:"تایید شوې سرچینې",narration:"غږیز ځواب",pause:"ودرول",resume:"بیا پیل",replay:"بیا واورئ",stop:"ودرول"},
             bal:{detected:"تشخیصءِ نتیجہ",confidence:"اعتمادءِ سطح",risk:"خطر",crop:"کشت",disease:"بیماری",answer:"جائزگ / جواب",sources:"تصدیقءَ بوتگین سراجاݔں",narration:"آوازءَ جواب",pause:"داریت",resume:"جاری داریت",replay:"دوبارہءِ بوشیت",stop:"بند کنیت"}
         };
@@ -549,10 +596,24 @@
                 const data = await res.json();
                 const grid = document.getElementById('langGrid');
                 grid.innerHTML = '';
-                data.languages.forEach(lang => {
-                    const btn = document.createElement('div');
-                    btn.className = 'lang-btn';
-                    btn.innerHTML = `<span class="native" dir="${lang.rtl?'rtl':'ltr'}">${lang.name_native}</span><span class="english">${lang.name_en}</span>`;
+                const priority = ['ur','ro','pa','pa-hi','hi','sd','ps','bal','en'];
+                const meta = {
+                    ur:{icon:'translate',tag:'Pakistan • اردو'}, ro:{icon:'text_fields',tag:'Roman • Pakistan'},
+                    pa:{icon:'translate',tag:'Shahmukhi • Pakistan'}, 'pa-hi':{icon:'language',tag:'Gurmukhi • Punjabi'},
+                    hi:{icon:'language',tag:'Devanagari • Hindi'}, sd:{icon:'translate',tag:'Sindhi'},
+                    ps:{icon:'translate',tag:'Pashto'}, bal:{icon:'translate',tag:'Balochi'}, en:{icon:'language',tag:'English'}
+                };
+                const ordered = [...data.languages].sort((a,b) => priority.indexOf(a.code)-priority.indexOf(b.code));
+                ordered.forEach(lang => {
+                    const btn = document.createElement('button');
+                    const m = meta[lang.code] || {icon:'language',tag:lang.locale || lang.code};
+                    btn.type = 'button';
+                    btn.className = 'lang-btn' + (priority.slice(0,5).includes(lang.code) ? ' priority' : '');
+                    btn.setAttribute('aria-label', `Select ${lang.name_en}`);
+                    btn.innerHTML = `<span class="lang-icon"><span class="material-icons-round">${m.icon}</span></span>
+                        <span class="native" dir="${lang.rtl?'rtl':'ltr'}">${lang.name_native}</span>
+                        <span class="english">${lang.name_en}</span>
+                        <span class="script-tag">${m.tag}</span>`;
                     btn.onclick = () => selectLanguage(lang.code, lang.name_native, lang.rtl);
                     grid.appendChild(btn);
                 });
@@ -719,7 +780,7 @@
         }
 
         function getSpeechLang(lang) {
-            const map = { ur:'ur-PK', ro:'ur-PK', en:'en-US', sd:'sd-PK', pa:'pa-PK', ps:'ps-AF', bal:'bal-UZ' };
+            const map = { ur:'ur-PK', ro:'ur-PK', en:'en-US', sd:'sd-PK', pa:'pa-PK', 'pa-hi':'pa-IN', hi:'hi-IN', ps:'ps-AF', bal:'bal-UZ' };
             return map[lang] || 'en-US';
         }
 

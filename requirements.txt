@@ -33,6 +33,12 @@ pyttsx3>=2.90
 gtts>=2.4.0
 pyaudio>=0.2.13
 
+# --- Pakistani Urdu & Punjabi NLP ---
+# Modern Urdu normalization/preprocessing/transliteration (Python 3.9+)
+urdu-nlp-tools>=0.1.2
+# Pakistani Punjabi Shahmukhi/Roman normalization, conversion and script detection
+punjabi-nlp-shahmukhi>=0.1.1
+
 # --- Translation ---
 googletrans==4.0.0-rc1
 deep-translator>=1.11.0

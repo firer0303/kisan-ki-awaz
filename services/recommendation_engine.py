@@ -86,14 +86,9 @@ class RecommendationEngine:
         llm_result = self.llm_service.generate(prompt)
         response_text = llm_result.get("text", "Unable to generate response.")
 
-        # Step 4: Translate if not English
-        translation_info = {"translated_text": response_text, "is_fallback": False}
-        if lang_code != "en":
-            translation_info = self.translation_service.translate(
-                response_text, target_lang=lang_code, source_lang="en"
-            )
-            if translation_info.get("translated_text"):
-                response_text = translation_info["translated_text"]
+        # Step 4: Keep the response in the selected language.
+        # The RAG prompt already requires formal native-language generation.
+        translation_info = {"translated_text": response_text, "is_fallback": False, "source": "selected-language-generation"}
 
         # Step 5: Prepare narration
         narration = self.narration_service.prepare_narration(response_text)

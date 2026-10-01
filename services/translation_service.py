@@ -167,6 +167,22 @@ class TranslationService:
         cleaned = re.sub(r"https?://\S+", "", translated)
         cleaned = re.sub(r"__KISAN_[A-Z0-9_]+__", "", cleaned)
 
+        # For Roman Urdu, Latin letters are expected. Only reject scripts
+        # that clearly indicate Urdu/Hindi/Gurmukhi output.
+        if target_lang == "ro":
+            arabic_chars = sum(
+                1
+                for ch in translated
+                if "\u0600" <= ch <= "\u06ff"
+                or "\u0750" <= ch <= "\u077f"
+                or "\ufb50" <= ch <= "\ufdff"
+            )
+            devanagari = sum(1 for ch in translated if "\u0900" <= ch <= "\u097f")
+            gurmukhi = sum(1 for ch in translated if "\u0a00" <= ch <= "\u0a7f")
+            if arabic_chars >= 4 or devanagari >= 1 or gurmukhi >= 1:
+                raise RuntimeError("Roman Urdu translation returned non-Roman script")
+            return
+
         # Latin-script technical/proper names may legitimately remain, but a
         # large amount of lowercase English means the translation failed.
         latin_words = re.findall(r"\b[A-Za-z][A-Za-z'-]{2,}\b", cleaned)

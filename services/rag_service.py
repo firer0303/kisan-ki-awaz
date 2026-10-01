@@ -133,7 +133,15 @@ class RAGService:
             image_section += "=== END IMAGE ANALYSIS ===\n"
 
         # Build the final prompt
-        language_names = {\n            "ur": "Urdu (اردو)",\n            "sd": "Sindhi (سنڌي)",\n            "pa": "Punjabi in Shahmukhi script (پنجابی)",\n            "ps": "Pashto (پښتو)",\n            "bal": "Balochi (بلوچی)",\n            "en": "English",\n        }\n        lang_instruction = language_names.get(language, "the farmer's selected language")
+        language_names = {
+            "ur": "Urdu (اردو)",
+            "sd": "Sindhi (سنڌي)",
+            "pa": "Punjabi in Shahmukhi script (پنجابی)",
+            "ps": "Pashto (پښتو)",
+            "bal": "Balochi (بلوچی)",
+            "en": "English",
+        }
+        lang_instruction = language_names.get(language, "the farmer's selected language")
         section_headings = {
             "ur": "تشخیص / جواب، سفارشات، احتیاطی تدابیر، تصدیق شدہ ذرائع، اعتماد کی سطح",
             "sd": "جائزو / جواب، سفارشون، احتياطي تدبيرون، تصديق ٿيل ذريعا، اعتماد جي سطح",

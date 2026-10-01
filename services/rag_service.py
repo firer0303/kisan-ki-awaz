@@ -160,7 +160,7 @@ class RAGService:
             f"Respond entirely in {lang_instruction}. Use the actual selected language and its natural vocabulary and script. "
             f"Every section heading must ALSO be written in the selected language; never use English section headings for Urdu, Sindhi, Punjabi, Pashto, or Balochi. "
             f"Use these section concepts in this order: {headings}. "
-            f"Do not translate the answer into Urdu, Hindi, or English unless the selected language is English or a technical term has no natural equivalent. "
+            f"Do not use English or Hindi in the response when the selected language is Urdu, Sindhi, Punjabi, Pashto, or Balochi. Translate or transliterate technical terms into the selected language. "
             f"Include a brief assessment/answer, specific recommendations with dosages/timing where applicable, warnings or precautions, verified sources, and confidence level.\n"
         )
         return prompt

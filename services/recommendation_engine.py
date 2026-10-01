@@ -130,16 +130,32 @@ class RecommendationEngine:
                 localized.append(item)
                 continue
             copy = dict(item)
+            fields = []
             for key in ("document_title", "description", "credibility"):
                 value = copy.get(key)
-                if not value or not isinstance(value, str):
-                    continue
+                if value and isinstance(value, str):
+                    fields.append((key, value))
+
+            if fields:
                 try:
-                    result = self.translation_service.translate(value, target_lang=lang_code, source_lang="en")
-                    if result.get("translated_text") and not result.get("is_fallback"):
-                        copy[key] = result["translated_text"]
+                    # Translate all metadata fields for one source in one request
+                    # instead of making three network calls per source.
+                    marker_text = "\n".join(
+                        f"__FIELD_{i}__ {value}" for i, (_, value) in enumerate(fields)
+                    )
+                    result = self.translation_service.translate(
+                        marker_text, target_lang=lang_code, source_lang="en"
+                    )
+                    translated = result.get("translated_text", "")
+                    if translated and not result.get("is_fallback"):
+                        for i, (key, _) in enumerate(fields):
+                            marker = f"__FIELD_{i}__"
+                            if marker in translated:
+                                value = translated.split(marker, 1)[1].split("__FIELD_", 1)[0].strip()
+                                if value:
+                                    copy[key] = value
                 except Exception as exc:
-                    logger.warning(f"Metadata translation failed for {key}: {exc}")
+                    logger.warning(f"Metadata translation failed: {exc}")
             localized.append(copy)
         return localized
 

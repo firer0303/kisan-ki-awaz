@@ -120,9 +120,33 @@ class RecommendationEngine:
             response_text = response_text.replace(f"## {english}", f"## {native}")
         return response_text, translation_info
 
+    def _localize_result_metadata(self, items, lang_code: str):
+        """Translate human-readable source metadata for the selected language."""
+        if lang_code == "en" or not items:
+            return items
+        localized = []
+        for item in items:
+            if not isinstance(item, dict):
+                localized.append(item)
+                continue
+            copy = dict(item)
+            for key in ("document_title", "description", "credibility"):
+                value = copy.get(key)
+                if not value or not isinstance(value, str):
+                    continue
+                try:
+                    result = self.translation_service.translate(value, target_lang=lang_code, source_lang="en")
+                    if result.get("translated_text") and not result.get("is_fallback"):
+                        copy[key] = result["translated_text"]
+                except Exception as exc:
+                    logger.warning(f"Metadata translation failed for {key}: {exc}")
+            localized.append(copy)
+        return localized
+
     def process_voice_query(self, text: str) -> Dict:
         lang_code = self.language_service.current_language.value
         evidence = self.rag_service.retrieve_evidence(text, top_k=3)
+        localized_sources = self._localize_result_metadata(evidence.get("citations", []), lang_code)
         prompt = self.rag_service.build_rag_prompt(text, evidence, language=lang_code)
         llm_result = self.llm_service.generate(prompt)
         response_text, translation_info = self._localize_response(
@@ -131,7 +155,7 @@ class RecommendationEngine:
             fallback_prompt=prompt,
         )
         narration = self.narration_service.prepare_narration(response_text)
-        return {"success": True, "response_text": response_text, "sources": evidence.get("citations", []), "evidence_count": evidence.get("evidence_count", 0), "narration_html": self.narration_service.get_autoplay_html(narration), "narration": narration, "translation_info": translation_info, "llm_provider": llm_result.get("provider", "unknown"), "is_demo": llm_result.get("is_demo", False), "input_type": "voice"}
+        return {"success": True, "response_text": response_text, "sources": localized_sources, "evidence_count": evidence.get("evidence_count", 0), "narration_html": self.narration_service.get_autoplay_html(narration), "narration": narration, "translation_info": translation_info, "llm_provider": llm_result.get("provider", "unknown"), "is_demo": llm_result.get("is_demo", False), "input_type": "voice"}
 
     def process_image(self, image: Image.Image, question: str = "", input_type: str = "image") -> Dict:
         """Analyze an image and preserve the vision result if downstream services fail."""
@@ -160,6 +184,7 @@ class RecommendationEngine:
             response_text, translation_info = self._localize_response(
                 llm_result.get("text", ""), lang_code, fallback_prompt=prompt
             )
+            localized_sources = self._localize_result_metadata(evidence.get("citations", []), lang_code)
             llm_provider = llm_result.get("provider", "unknown")
             is_demo = is_demo or bool(llm_result.get("is_demo", False))
         except Exception as exc:
@@ -169,7 +194,7 @@ class RecommendationEngine:
         narration = self.narration_service.prepare_narration(response_text)
         return {
             "success": True, "response_text": response_text, "vision_result": vision_result,
-            "sources": evidence.get("citations", []), "evidence_count": evidence.get("evidence_count", 0),
+            "sources": localized_sources if 'localized_sources' in locals() else self._localize_result_metadata(evidence.get("citations", []), lang_code), "evidence_count": evidence.get("evidence_count", 0),
             "narration_html": self.narration_service.get_autoplay_html(narration), "narration": narration,
             "translation_info": translation_info, "llm_provider": llm_provider, "is_demo": is_demo,
             "input_type": input_type, "image_quality": vision_result.get("image_quality", {})

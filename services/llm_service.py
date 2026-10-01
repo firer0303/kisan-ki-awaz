@@ -225,7 +225,7 @@ class LLMService:
             response_parts.append(f"## {recommendations}\n\n{consult}\n\n")
             response_parts.append(f"**{confidence_label}:** {confidence_unable}\n")
 
-        return {
+        response_text = "".join(response_parts)
 
         return {
             "text": response_text,

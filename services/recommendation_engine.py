@@ -419,7 +419,16 @@ class RecommendationEngine:
             market = market_future.result() if market_future else {}
 
         raw_response = llm_result.get("text", "Unable to generate response.")
-        if llm_result.get("localized") and llm_result.get("language") == lang_code:
+        already_localized = bool(
+            llm_result.get("localized")
+            and llm_result.get("language") == lang_code
+        )
+        if already_localized and lang_code == "pa":
+            already_localized = self.translation_service.is_valid_selected_language_output(
+                raw_response, "pa"
+            )
+
+        if already_localized:
             response_text = raw_response
             translation_info = {
                 "translated_text": response_text,

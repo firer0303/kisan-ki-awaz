@@ -119,6 +119,20 @@ class TranslationService:
         if not translated:
             raise RuntimeError("MyMemory returned no translated text")
 
+        # Punjabi in Kisan Ki Awaz means Pakistani Punjabi (Shahmukhi),
+        # not Hindi/Devanagari. Some free translation providers can return
+        # Hindi-script output for the generic "pa" target, so reject it and
+        # let the native Punjabi fallback generate the answer instead.
+        if target == "pa":
+            devanagari_chars = sum(
+                1 for ch in translated
+                if "\u0900" <= ch <= "\u097f"
+            )
+            if devanagari_chars >= 3:
+                raise RuntimeError(
+                    "Translation provider returned Hindi/Devanagari for Punjabi target"
+                )
+
         for i, url in enumerate(urls):
             translated = translated.replace(f"__KISAN_URL_{i}__", url)
 

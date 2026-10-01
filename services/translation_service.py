@@ -109,45 +109,41 @@ class TranslationService:
         session = requests.Session()
         session.headers.update({"User-Agent": "KisanKiAwaz/1.0"})
         # MyMemory enforces a hard maximum of 500 characters per query.
-        # Translate each non-empty result line separately so the translated
-        # response remains easy to understand sentence-by-sentence while all
-        # sections (evidence, recommendations, warnings, sources, confidence)
-        # are still translated.
-        translated_lines = []
-        for line in protected.splitlines(keepends=True):
-            raw = line.rstrip("\r\n")
-            newline = line[len(raw):]
+        # Translate complete paragraphs / sentences as units so the result
+        # reads naturally, while splitting only when a paragraph is too long.
+        # This keeps every required fact instead of translating only headings.
+        import re as _re
 
-            if not raw.strip():
-                translated_lines.append(line)
-                continue
+        def translate_chunk(chunk: str) -> str:
+            if not chunk or not chunk.strip():
+                return chunk
 
-            # Keep Markdown structure at the beginning of the line intact,
-            # and translate the actual human-readable text after it.
-            import re as _re
-            prefix_match = _re.match(r"^(\s*(?:#{1,6}\s+|[-*]\s+|\d+[.)]\s+)?)", raw)
-            prefix = prefix_match.group(1) if prefix_match else ""
-            body = raw[len(prefix):]
-
-            # A very long single line can still exceed the provider limit.
-            body_parts = []
-            remaining = body
+            # Split only when needed, preferably at sentence boundaries.
+            parts = []
+            remaining = chunk.strip()
             while remaining:
-                if len(prefix) + len(remaining) <= 480:
-                    body_parts.append(remaining)
+                if len(remaining) <= 480:
+                    parts.append(remaining)
                     break
-                cut = remaining.rfind(" ", 0, 480 - len(prefix))
-                if cut < 100:
-                    cut = 480 - len(prefix)
-                body_parts.append(remaining[:cut])
-                remaining = remaining[cut:].lstrip()
 
-            translated_parts = []
-            for part in body_parts:
-                request_text = prefix + part if not translated_parts else part
+                window = remaining[:480]
+                cut = -1
+                matches = list(_re.finditer(r"[.!?۔؟](?:\s+|$)", window))
+                if matches:
+                    cut = matches[-1].end()
+
+                if cut < 180:
+                    space = window.rfind(" ")
+                    cut = space if space >= 120 else 480
+
+                parts.append(remaining[:cut].strip())
+                remaining = remaining[cut:].strip()
+
+            out = []
+            for part in parts:
                 resp = session.get(
                     "https://api.mymemory.translated.net/get",
-                    params={"q": request_text, "langpair": f"{source}|{target}"},
+                    params={"q": part, "langpair": f"{source}|{target}"},
                     timeout=5,
                 )
                 resp.raise_for_status()
@@ -155,28 +151,79 @@ class TranslationService:
                 translated_part = (data.get("responseData") or {}).get("translatedText")
                 if not translated_part:
                     raise RuntimeError("MyMemory returned no translated text")
-                translated_parts.append(translated_part)
 
-            translated_line = "".join(translated_parts)
-            if translated_line and not translated_line.startswith(prefix) and prefix:
-                translated_line = prefix + translated_line
-
-            # Punjabi in Kisan Ki Awaz means Pakistani Punjabi (Shahmukhi),
-            # not Hindi/Devanagari. Reject Hindi output and use the normal
-            # fallback chain rather than showing the wrong script.
-            if target == "pa":
-                devanagari_chars = sum(
-                    1 for ch in translated_line
-                    if "\u0900" <= ch <= "\u097f"
-                )
-                if devanagari_chars >= 3:
-                    raise RuntimeError(
-                        "Translation provider returned Hindi/Devanagari for Punjabi target"
+                # Punjabi in Kisan Ki Awaz means Pakistani Punjabi/Shahmukhi.
+                # Do not accept Hindi/Devanagari output.
+                if target == "pa":
+                    devanagari_chars = sum(
+                        1 for ch in translated_part
+                        if "\u0900" <= ch <= "\u097f"
                     )
+                    if devanagari_chars >= 3:
+                        raise RuntimeError(
+                            "Translation provider returned Hindi/Devanagari for Punjabi target"
+                        )
 
-            translated_lines.append(translated_line + newline)
+                out.append(translated_part.strip())
 
-        translated = "".join(translated_lines)
+            return " ".join(out)
+
+        # Preserve document structure, but translate actual prose in natural
+        # paragraph-sized units. Headings, bullets, and numbered items retain
+        # their Markdown markers; URLs were already protected above.
+        blocks = _re.split(r"(\n\s*\n+)", protected)
+        translated_blocks = []
+
+        for block in blocks:
+            if not block.strip():
+                translated_blocks.append(block)
+                continue
+
+            lines = block.splitlines(keepends=True)
+            current_paragraph = []
+
+            def flush_paragraph():
+                if not current_paragraph:
+                    return
+                paragraph = "".join(current_paragraph).strip()
+                if paragraph:
+                    translated_blocks.append(translate_chunk(paragraph))
+                current_paragraph.clear()
+
+            for line in lines:
+                raw = line.rstrip("\r\n")
+                if not raw.strip():
+                    flush_paragraph()
+                    translated_blocks.append(line)
+                    continue
+
+                # Markdown heading: translate it as a whole heading.
+                heading = _re.match(r"^(\s*#{1,6}\s+)(.+?)\s*$", raw)
+                if heading:
+                    flush_paragraph()
+                    translated_heading = translate_chunk(heading.group(2))
+                    translated_blocks.append(heading.group(1) + translated_heading)
+                    continue
+
+                # Bullets/numbered recommendations are translated as complete
+                # items rather than word-by-word fragments.
+                item = _re.match(r"^(\s*(?:[-*]\s+|\d+[.)]\s+))(.+?)\s*$", raw)
+                if item:
+                    flush_paragraph()
+                    translated_item = translate_chunk(item.group(2))
+                    translated_blocks.append(item.group(1) + translated_item)
+                    continue
+
+                # Normal prose lines are joined into one paragraph before
+                # translation, giving the provider enough context for smooth
+                # grammar and terminology.
+                current_paragraph.append(raw + " ")
+
+            flush_paragraph()
+
+        translated = "\n\n".join(
+            part for part in translated_blocks if part is not None
+        )
 
         for i, url in enumerate(urls):
             translated = translated.replace(f"__KISAN_URL_{i}__", url)

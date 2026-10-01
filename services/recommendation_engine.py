@@ -159,6 +159,60 @@ class RecommendationEngine:
 
         return localized
 
+    def _localize_vision_result(self, vision: Dict, lang_code: str) -> Dict:
+        """Translate all human-readable vision fields into the selected language."""
+        if lang_code == "en" or not isinstance(vision, dict):
+            return dict(vision)
+
+        localized = dict(vision)
+
+        # Short fixed labels/values are safer as native mappings.
+        fixed = {
+            "risk_level": {
+                "low": {"ur": "کم", "sd": "گهٽ", "pa": "گھٹ", "ps": "ټیټ", "bal": "کم"},
+                "medium": {"ur": "درمیانہ", "sd": "وچولو", "pa": "درمیانہ", "ps": "منځنی", "bal": "درمیان"},
+                "high": {"ur": "زیادہ", "sd": "وڌيڪ", "pa": "زیادہ", "ps": "لوړ", "bal": "زیادہ"},
+                "unknown": {"ur": "نامعلوم", "sd": "نامعلوم", "pa": "نامعلوم", "ps": "ناڅرګند", "bal": "نامعلوم"},
+            }
+        }
+        risk = str(localized.get("risk_level", "")).lower()
+        if risk in fixed["risk_level"]:
+            localized["risk_level"] = fixed["risk_level"][risk].get(lang_code, localized["risk_level"])
+
+        text_fields = ["prediction", "crop_detected", "disease_detected", "reason"]
+        warning_fields = ["warnings"]
+
+        texts = []
+        for key in text_fields:
+            value = localized.get(key)
+            if value and isinstance(value, str) and value.lower() not in {"unknown", "none", "n/a"}:
+                texts.append((key, value))
+
+        warnings = localized.get("warnings") or []
+        for index, warning in enumerate(warnings):
+            if isinstance(warning, str) and warning.strip():
+                texts.append((f"warning_{index}", warning))
+
+        for key, value in texts:
+            try:
+                result = self.translation_service.translate(
+                    value, target_lang=lang_code, source_lang="en"
+                )
+                translated = result.get("translated_text")
+                if translated and not result.get("is_fallback"):
+                    if key.startswith("warning_"):
+                        idx = int(key.split("_", 1)[1])
+                        warnings[idx] = translated
+                    else:
+                        localized[key] = translated
+            except Exception as exc:
+                logger.warning(f"Vision field localization failed for {key}: {exc}")
+
+        if warnings:
+            localized["warnings"] = warnings
+
+        return localized
+
     def _detect_market_crop(self, text: str, evidence: Dict) -> str:
         """Detect a crop for live market-rate lookup."""
         q = (text or "").lower()
@@ -211,14 +265,25 @@ class RecommendationEngine:
             if avg:
                 line += f" ({avg_label}: {avg})"
             if unit:
-                line += f" / {unit}"
+                unit_text = unit
+                if lang_code == "ur":
+                    unit_text = unit_text.replace("100kg", "100 کلوگرام").replace("40kg", "40 کلوگرام").replace("kg", "کلوگرام")
+                elif lang_code == "sd":
+                    unit_text = unit_text.replace("100kg", "100 ڪلوگرام").replace("40kg", "40 ڪلوگرام").replace("kg", "ڪلوگرام")
+                elif lang_code == "pa":
+                    unit_text = unit_text.replace("100kg", "100 کلوگرام").replace("40kg", "40 کلوگرام").replace("kg", "کلوگرام")
+                elif lang_code == "ps":
+                    unit_text = unit_text.replace("100kg", "۱۰۰ کیلوګرام").replace("40kg", "۴۰ کیلوګرام").replace("kg", "کیلوګرام")
+                elif lang_code == "bal":
+                    unit_text = unit_text.replace("100kg", "100 کلوگرام").replace("40kg", "40 کلوگرام").replace("kg", "کلوگرام")
+                line += f" / {unit_text}"
             if date:
                 line += f" — {date}"
             lines.append(line + "\n")
         source = market.get("source", "")
         if source:
             if lang_code == "ur":
-                lines.append(f"\nماخذ: {source}۔ یہ تازہ دستیاب ریٹ ہے؛ مقامی منڈی میں معمولی فرق ہو سکتا ہے۔\n")
+                lines.append(f"\nماخذ: {source}۔ یہ تازہ دستیاب منڈی ریٹ ہے؛ آپ کی مقامی منڈی میں تھوڑا فرق ہو سکتا ہے۔\n")
             elif lang_code == "sd":
                 lines.append(f"\nذريعو: {source}. هي تازو دستياب اگهه آهي؛ مقامي منڊي ۾ ٿورو فرق ٿي سگهي ٿو.\n")
             elif lang_code == "pa":
@@ -282,6 +347,7 @@ class RecommendationEngine:
         """Analyze an image and preserve the vision result if downstream services fail."""
         lang_code = self.language_service.current_language.value
         vision_result = self.vision_service.analyze_image(image)
+        vision_result = self._localize_vision_result(vision_result, lang_code)
         if not vision_result.get("success"):
             return {"success": False, "error": vision_result.get("error", "Image analysis failed"), "warnings": vision_result.get("warnings", [])}
 

@@ -93,8 +93,9 @@ class RAGService:
             "4. If evidence is insufficient, state that clearly and recommend "
             "consulting a local agricultural extension officer.\n"
             "5. Respond entirely in the farmer's selected language. Do not switch to English unless the farmer selected English or a technical term has no natural translation.\n"
-            "6. Include specific, actionable recommendations (dosages, timing, methods).\n"
-            "7. Always include a 'Verified Sources' section listing the sources used.\n"
+            "6. Use formal, professional, respectful language appropriate for a trusted agricultural advisory service. Avoid casual or conversational wording.\n"
+            "7. Include specific, actionable recommendations (dosages, timing, methods).\n"
+            "8. Always include a 'Verified Sources' section listing the sources used.\n"
         )
 
         # Build the evidence section

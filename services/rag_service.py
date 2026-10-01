@@ -133,13 +133,13 @@ class RAGService:
             image_section += "=== END IMAGE ANALYSIS ===\n"
 
         # Build the final prompt
-        lang_instruction = "English" if language == "en" else "the farmer's selected language"
+        language_names = {\n            "ur": "Urdu (اردو)",\n            "sd": "Sindhi (سنڌي)",\n            "pa": "Punjabi in Shahmukhi script (پنجابی)",\n            "ps": "Pashto (پښتو)",\n            "bal": "Balochi (بلوچی)",\n            "en": "English",\n        }\n        lang_instruction = language_names.get(language, "the farmer's selected language")
         prompt = (
             f"{system_instructions}\n"
             f"{evidence_section}\n"
             f"{image_section}\n"
             f"Farmer's Question: {farmer_question}\n\n"
-            f"Respond entirely in {lang_instruction}. Do not translate the answer back to English. "
+            f"Respond entirely in {lang_instruction}. Use the actual selected language and its natural vocabulary and script. Do not translate the answer into Urdu, Hindi, or English unless the selected language is English or a technical term has no natural equivalent. "
             f"with a clear, structured answer including:\n"
             f"1. Brief assessment/answer\n"
             f"2. Specific recommendations (with dosages/timing where applicable)\n"

@@ -162,7 +162,7 @@ class RAGService:
             f"Respond entirely in {lang_instruction}. Use the actual selected language and its natural vocabulary and script. "
             f"Every section heading must ALSO be written in the selected language; never use English section headings for Urdu, Sindhi, Punjabi, Pashto, or Balochi. "
             f"Use these section concepts in this order: {headings}. "
-            f"Do not use English or Hindi in the response when the selected language is Urdu, Roman Urdu, Sindhi, Punjabi, Pashto, or Balochi. For Roman Urdu, use Latin/English letters only and do not use Urdu, Hindi, Devanagari, or Gurmukhi script. Translate or transliterate technical terms into the selected language. "
+            f"For Urdu, Sindhi, Punjabi, Pashto, and Balochi, do not use English or Hindi prose. For Roman Urdu, use natural Pakistani Roman Urdu in Latin letters only; do not use Urdu, Hindi, Devanagari, or Gurmukhi script. Translate or transliterate technical terms into the selected language. "
             f"Include a clear answer, practical recommendations with dosage/timing where applicable, simple precautions, reliable sources, and a simple confidence statement. Return the final farmer answer as one smooth paragraph with no bullets, numbered lists, Markdown headings, or separate list lines. For Urdu, use modern everyday Pakistani Urdu throughout. For Roman Urdu, use natural everyday Pakistani Roman Urdu, not formal transliteration.\n"
         )
         return prompt

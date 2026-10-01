@@ -121,50 +121,59 @@ class RecommendationEngine:
         return response_text, translation_info
 
     def _localize_result_metadata(self, items, lang_code: str):
-        """Translate human-readable source metadata for the selected language."""
+        """Translate all source metadata in one request to minimize latency."""
         if lang_code == "en" or not items:
             return items
-        localized = []
-        for item in items:
-            if not isinstance(item, dict):
-                localized.append(item)
-                continue
-            copy = dict(item)
-            fields = []
-            for key in ("document_title", "description", "credibility"):
-                value = copy.get(key)
-                if value and isinstance(value, str):
-                    fields.append((key, value))
 
-            if fields:
-                try:
-                    # Translate all metadata fields for one source in one request
-                    # instead of making three network calls per source.
-                    marker_text = "\n".join(
-                        f"__FIELD_{i}__ {value}" for i, (_, value) in enumerate(fields)
-                    )
-                    result = self.translation_service.translate(
-                        marker_text, target_lang=lang_code, source_lang="en"
-                    )
-                    translated = result.get("translated_text", "")
-                    if translated and not result.get("is_fallback"):
-                        for i, (key, _) in enumerate(fields):
-                            marker = f"__FIELD_{i}__"
-                            if marker in translated:
-                                value = translated.split(marker, 1)[1].split("__FIELD_", 1)[0].strip()
-                                if value:
-                                    copy[key] = value
-                except Exception as exc:
-                    logger.warning(f"Metadata translation failed: {exc}")
-            localized.append(copy)
+        localized = [dict(item) if isinstance(item, dict) else item for item in items]
+        fields = []
+        for item_index, item in enumerate(localized):
+            if not isinstance(item, dict):
+                continue
+            for key in ("document_title", "description", "credibility"):
+                value = item.get(key)
+                if value and isinstance(value, str):
+                    fields.append((item_index, key, value))
+
+        if not fields:
+            return localized
+
+        try:
+            marker_text = "\n".join(
+                f"__KISAN_FIELD_{i}__ {value}" for i, (_, _, value) in enumerate(fields)
+            )
+            result = self.translation_service.translate(
+                marker_text, target_lang=lang_code, source_lang="en"
+            )
+            translated = result.get("translated_text", "")
+            if translated and not result.get("is_fallback"):
+                for i, (item_index, key, _) in enumerate(fields):
+                    marker = f"__KISAN_FIELD_{i}__"
+                    if marker not in translated:
+                        continue
+                    value = translated.split(marker, 1)[1].split("__KISAN_FIELD_", 1)[0].strip()
+                    if value:
+                        localized[item_index][key] = value
+        except Exception as exc:
+            logger.warning(f"Metadata translation failed: {exc}")
+
         return localized
 
     def process_voice_query(self, text: str) -> Dict:
         lang_code = self.language_service.current_language.value
         evidence = self.rag_service.retrieve_evidence(text, top_k=3)
-        localized_sources = self._localize_result_metadata(evidence.get("citations", []), lang_code)
         prompt = self.rag_service.build_rag_prompt(text, evidence, language=lang_code)
-        llm_result = self.llm_service.generate(prompt)
+
+        # Source metadata and answer generation are independent; run them together
+        # so translation work does not add its full latency to the LLM path.
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            source_future = executor.submit(
+                self._localize_result_metadata, evidence.get("citations", []), lang_code
+            )
+            llm_future = executor.submit(self.llm_service.generate, prompt)
+            localized_sources = source_future.result()
+            llm_result = llm_future.result()
         response_text, translation_info = self._localize_response(
             llm_result.get("text", "Unable to generate response."),
             lang_code,

@@ -159,28 +159,124 @@ class RecommendationEngine:
 
         return localized
 
+    def _detect_market_crop(self, text: str, evidence: Dict) -> str:
+        """Detect a crop for live market-rate lookup."""
+        q = (text or "").lower()
+        aliases = {
+            "wheat": ["wheat", "گندم", "गेहूं"],
+            "rice": ["rice", "چاول", "چاوَل"],
+            "cotton": ["cotton", "کپاس"],
+            "sugarcane": ["sugarcane", "گنا"],
+        }
+        for crop, words in aliases.items():
+            if any(word in q for word in words):
+                return crop
+        for doc in evidence.get("retrieved_docs", []) or []:
+            crop = getattr(doc, "crop", None)
+            if crop and str(crop).lower() in aliases:
+                return str(crop).lower()
+        return ""
+
+    def _market_section(self, market: Dict, lang_code: str) -> str:
+        """Build a simple selected-language live-price section."""
+        prices = market.get("prices") or []
+        if not prices:
+            return ""
+
+        headings = {
+            "ur": "## تازہ منڈی ریٹ\n\n",
+            "sd": "## تازو منڊي اگهه\n\n",
+            "pa": "## تازہ منڈی ریٹ\n\n",
+            "ps": "## د منډۍ تازه بیه\n\n",
+            "bal": "## تازہ منڈی ریٹ\n\n",
+            "en": "## Latest Market Rate\n\n",
+        }
+        lines = [headings.get(lang_code, headings["en"])]
+        labels = {
+            "ur": ("منڈی", "قیمت", "اوسط"),
+            "sd": ("منڊي", "قيمت", "اوسط"),
+            "pa": ("منڈی", "ریٹ", "اوسط"),
+            "ps": ("منډۍ", "بیه", "اوسط"),
+            "bal": ("منڈی", "ریٹ", "اوسط"),
+            "en": ("Market", "Price", "Average"),
+        }
+        market_label, price_label, avg_label = labels.get(lang_code, labels["en"])
+        for item in prices[:8]:
+            market_name = item.get("market", "")
+            price = item.get("price", "")
+            avg = item.get("average", "")
+            unit = item.get("unit", "")
+            date = item.get("date", "")
+            line = f"- {market_label}: {market_name} — {price}"
+            if avg:
+                line += f" ({avg_label}: {avg})"
+            if unit:
+                line += f" / {unit}"
+            if date:
+                line += f" — {date}"
+            lines.append(line + "\n")
+        source = market.get("source", "")
+        if source:
+            if lang_code == "ur":
+                lines.append(f"\nماخذ: {source}۔ یہ تازہ دستیاب ریٹ ہے؛ مقامی منڈی میں معمولی فرق ہو سکتا ہے۔\n")
+            elif lang_code == "sd":
+                lines.append(f"\nذريعو: {source}. هي تازو دستياب اگهه آهي؛ مقامي منڊي ۾ ٿورو فرق ٿي سگهي ٿو.\n")
+            elif lang_code == "pa":
+                lines.append(f"\nماخذ: {source}۔ ایہہ تازہ دستیاب ریٹ اے؛ مقامی منڈی وچ تھوڑا فرق ہو سکدا اے۔\n")
+            elif lang_code == "ps":
+                lines.append(f"\nسرچینه: {source}. دا تازه موجود نرخ دی؛ په محلي منډۍ کې لږ توپیر کېدای شي.\n")
+            elif lang_code == "bal":
+                lines.append(f"\nماخذ: {source}. اے تازہ دسترس ءَ بوتگین ریٹ اَنت؛ مقامی منڈیءَ ءَ کم بیش فرق بوتگ.\n")
+            else:
+                lines.append(f"\nSource: {source}. This is the latest available rate; local mandi prices can vary.\n")
+        return "".join(lines)
+
     def process_voice_query(self, text: str) -> Dict:
         lang_code = self.language_service.current_language.value
         evidence = self.rag_service.retrieve_evidence(text, top_k=3)
         prompt = self.rag_service.build_rag_prompt(text, evidence, language=lang_code)
+        market_crop = self._detect_market_crop(text, evidence)
 
-        # Source metadata and answer generation are independent; run them together
-        # so translation work does not add its full latency to the LLM path.
         from concurrent.futures import ThreadPoolExecutor
-        with ThreadPoolExecutor(max_workers=2) as executor:
+        with ThreadPoolExecutor(max_workers=3) as executor:
             source_future = executor.submit(
                 self._localize_result_metadata, evidence.get("citations", []), lang_code
             )
             llm_future = executor.submit(self.llm_service.generate, prompt)
+            market_future = executor.submit(
+                self.market_service.get_crop_prices, market_crop
+            ) if market_crop else None
+
             localized_sources = source_future.result()
             llm_result = llm_future.result()
+            market = market_future.result() if market_future else {}
+
         response_text, translation_info = self._localize_response(
             llm_result.get("text", "Unable to generate response."),
             lang_code,
             fallback_prompt=prompt,
         )
+
+        # Add live market information as a separate, easy-to-read section
+        # after the translated answer so numeric price data is never lost.
+        market_text = self._market_section(market, lang_code)
+        if market_text:
+            response_text = response_text.rstrip() + "\n\n" + market_text
+
         narration = self.narration_service.prepare_narration(response_text)
-        return {"success": True, "response_text": response_text, "sources": localized_sources, "evidence_count": evidence.get("evidence_count", 0), "narration_html": self.narration_service.get_autoplay_html(narration), "narration": narration, "translation_info": translation_info, "llm_provider": llm_result.get("provider", "unknown"), "is_demo": llm_result.get("is_demo", False), "input_type": "voice"}
+        return {
+            "success": True,
+            "response_text": response_text,
+            "sources": localized_sources,
+            "evidence_count": evidence.get("evidence_count", 0),
+            "market": market,
+            "narration_html": self.narration_service.get_autoplay_html(narration),
+            "narration": narration,
+            "translation_info": translation_info,
+            "llm_provider": llm_result.get("provider", "unknown"),
+            "is_demo": bool(llm_result.get("is_demo", False)) or bool(market.get("is_demo", False)),
+            "input_type": "voice",
+        }
 
     def process_image(self, image: Image.Image, question: str = "", input_type: str = "image") -> Dict:
         """Analyze an image and preserve the vision result if downstream services fail."""

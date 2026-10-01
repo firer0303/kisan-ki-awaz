@@ -135,16 +135,18 @@ class RAGService:
 
         # Build the final prompt
         language_names = {
-            "ur": "Urdu (اردو)",
+            "ur": "Urdu (Pakistan / اردو)",
+            "ro": "Roman Urdu (Pakistan)",
             "sd": "Sindhi (سنڌي)",
-            "pa": "Punjabi in Shahmukhi script (پنجابی)",
+            "pa": "Pakistani Punjabi in Shahmukhi script (پنجابی / شاہ مکھی)",
             "ps": "Pashto (پښتو)",
             "bal": "Balochi (بلوچی)",
             "en": "English",
         }
         lang_instruction = language_names.get(language, "the farmer's selected language")
         section_headings = {
-            "ur": "تشخیص / جواب، سفارشات، احتیاطی تدابیر، تصدیق شدہ ذرائع، اعتماد کی سطح",
+            "ur": "جواب، کیا کریں، احتیاط، قابلِ بھروسا ذرائع، یقین کی سطح",
+            "ro": "Jawab, Kya karein, Ehtiyat, Moatabar zaraye, Yaqeen ki satah",
             "sd": "جائزو / جواب، سفارشون، احتياطي تدبيرون، تصديق ٿيل ذريعا، اعتماد جي سطح",
             "pa": "جائزہ / جواب، سفارشاں، احتیاطی تدبیراں، تصدیق شدہ ذرائع، اعتماد دی سطح",
             "ps": "ارزونه / ځواب، سپارښتنې، احتیاطي تدابیر، تایید شوې سرچینې، د باور کچه",
@@ -160,8 +162,8 @@ class RAGService:
             f"Respond entirely in {lang_instruction}. Use the actual selected language and its natural vocabulary and script. "
             f"Every section heading must ALSO be written in the selected language; never use English section headings for Urdu, Sindhi, Punjabi, Pashto, or Balochi. "
             f"Use these section concepts in this order: {headings}. "
-            f"Do not use English or Hindi in the response when the selected language is Urdu, Sindhi, Punjabi, Pashto, or Balochi. Translate or transliterate technical terms into the selected language. "
-            f"Include a clear answer, practical recommendations with dosage/timing where applicable, simple precautions, reliable sources, and a simple confidence statement. Return the final farmer answer as one smooth paragraph with no bullets, numbered lists, Markdown headings, or separate list lines. For Urdu, use modern everyday Pakistani Urdu throughout.\n"
+            f"Do not use English or Hindi in the response when the selected language is Urdu, Roman Urdu, Sindhi, Punjabi, Pashto, or Balochi. For Roman Urdu, use Latin/English letters only and do not use Urdu, Hindi, Devanagari, or Gurmukhi script. Translate or transliterate technical terms into the selected language. "
+            f"Include a clear answer, practical recommendations with dosage/timing where applicable, simple precautions, reliable sources, and a simple confidence statement. Return the final farmer answer as one smooth paragraph with no bullets, numbered lists, Markdown headings, or separate list lines. For Urdu, use modern everyday Pakistani Urdu throughout. For Roman Urdu, use natural everyday Pakistani Roman Urdu, not formal transliteration.\n"
         )
         return prompt
 

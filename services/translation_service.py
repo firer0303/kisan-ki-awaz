@@ -162,11 +162,21 @@ class TranslationService:
                 f"Significant English text detected in {target_lang} translation"
             )
 
-        if target_lang == "pa":
-            # Kisan Ki Awaz Punjabi means Pakistani Punjabi in Shahmukhi
-            # (Arabic-derived script), not Hindi/Devanagari or Gurmukhi.
+        # Pakistani Urdu and Punjabi use the Arabic-derived script.
+        # Reject Indian Indic scripts so the UI never shows Hindi/Gurmukhi.
+        if target_lang in {"ur", "pa"}:
             devanagari = sum(1 for ch in translated if "\u0900" <= ch <= "\u097f")
             gurmukhi = sum(1 for ch in translated if "\u0a00" <= ch <= "\u0a7f")
+            if devanagari >= 1:
+                raise RuntimeError(
+                    f"{target_lang} translation returned Hindi/Devanagari script"
+                )
+            if gurmukhi >= 1:
+                raise RuntimeError(
+                    f"{target_lang} translation returned Gurmukhi script"
+                )
+
+        if target_lang == "pa":
             shahmukhi = sum(
                 1
                 for ch in translated
@@ -176,15 +186,6 @@ class TranslationService:
                     or "\ufb50" <= ch <= "\ufdff"
                 )
             )
-
-            if devanagari >= 1:
-                raise RuntimeError(
-                    "Punjabi translation returned Hindi/Devanagari script"
-                )
-            if gurmukhi >= 1:
-                raise RuntimeError(
-                    "Punjabi translation returned Gurmukhi script"
-                )
             if shahmukhi < 4:
                 raise RuntimeError(
                     "Punjabi translation did not return Pakistani Shahmukhi script"

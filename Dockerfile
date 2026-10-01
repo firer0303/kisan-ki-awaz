@@ -17,13 +17,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy dependency list first for layer caching
 COPY requirements-render.txt .
+
 RUN pip install --no-cache-dir -r requirements-render.txt
 
 # Copy application code
 COPY . .
 
-# Expose the API port
+# Railway will provide the PORT environment variable
 EXPOSE 8000
 
-# Run the FastAPI server
+# Start the FastAPI application
 CMD ["python", "api.py"]

@@ -1,8 +1,8 @@
 """
 Kisan Ki Awaz - Language Management Service
 =============================================
-Manages multilingual support for 6 languages:
-Urdu, Sindhi, Punjabi, Pashto, Balochi, and English.
+Manages multilingual support for 7 languages:
+Urdu, Roman Urdu, Sindhi, Punjabi, Pashto, Balochi, and English.
 
 Language selection happens BEFORE any voice/camera/image input
 and persists throughout the entire session.

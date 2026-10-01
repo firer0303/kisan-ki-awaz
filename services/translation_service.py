@@ -109,55 +109,74 @@ class TranslationService:
         session = requests.Session()
         session.headers.update({"User-Agent": "KisanKiAwaz/1.0"})
         # MyMemory enforces a hard maximum of 500 characters per query.
-        # Split the protected response into small chunks so the complete result
-        # (including evidence, recommendations, warnings, and confidence) is
-        # translated without triggering "QUERY LENGTH LIMIT EXCEEDED".
-        chunks = []
-        remaining = protected
-        max_chars = 480
-        while remaining:
-            if len(remaining) <= max_chars:
-                chunks.append(remaining)
-                break
+        # Translate each non-empty result line separately so the translated
+        # response remains easy to understand sentence-by-sentence while all
+        # sections (evidence, recommendations, warnings, sources, confidence)
+        # are still translated.
+        translated_lines = []
+        for line in protected.splitlines(keepends=True):
+            raw = line.rstrip("\r\n")
+            newline = line[len(raw):]
 
-            cut = remaining.rfind("\n", 0, max_chars)
-            if cut < 200:
-                cut = remaining.rfind(" ", 0, max_chars)
-            if cut < 1:
-                cut = max_chars
+            if not raw.strip():
+                translated_lines.append(line)
+                continue
 
-            chunks.append(remaining[:cut])
-            remaining = remaining[cut:]
-        
-        translated_chunks = []
-        for chunk in chunks:
-            resp = session.get(
-                "https://api.mymemory.translated.net/get",
-                params={"q": chunk, "langpair": f"{source}|{target}"},
-                timeout=5,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            translated_chunk = (data.get("responseData") or {}).get("translatedText")
-            if not translated_chunk:
-                raise RuntimeError("MyMemory returned no translated text")
-            translated_chunks.append(translated_chunk)
+            # Keep Markdown structure at the beginning of the line intact,
+            # and translate the actual human-readable text after it.
+            import re as _re
+            prefix_match = _re.match(r"^(\s*(?:#{1,6}\s+|[-*]\s+|\d+[.)]\s+)?)", raw)
+            prefix = prefix_match.group(1) if prefix_match else ""
+            body = raw[len(prefix):]
 
-        translated = "".join(translated_chunks)
+            # A very long single line can still exceed the provider limit.
+            body_parts = []
+            remaining = body
+            while remaining:
+                if len(prefix) + len(remaining) <= 480:
+                    body_parts.append(remaining)
+                    break
+                cut = remaining.rfind(" ", 0, 480 - len(prefix))
+                if cut < 100:
+                    cut = 480 - len(prefix)
+                body_parts.append(remaining[:cut])
+                remaining = remaining[cut:].lstrip()
 
-        # Punjabi in Kisan Ki Awaz means Pakistani Punjabi (Shahmukhi),
-        # not Hindi/Devanagari. Some free translation providers can return
-        # Hindi-script output for the generic "pa" target, so reject it and
-        # allow the normal fallback path instead of showing Hindi.
-        if target == "pa":
-            devanagari_chars = sum(
-                1 for ch in translated
-                if "\u0900" <= ch <= "\u097f"
-            )
-            if devanagari_chars >= 3:
-                raise RuntimeError(
-                    "Translation provider returned Hindi/Devanagari for Punjabi target"
+            translated_parts = []
+            for part in body_parts:
+                request_text = prefix + part if not translated_parts else part
+                resp = session.get(
+                    "https://api.mymemory.translated.net/get",
+                    params={"q": request_text, "langpair": f"{source}|{target}"},
+                    timeout=5,
                 )
+                resp.raise_for_status()
+                data = resp.json()
+                translated_part = (data.get("responseData") or {}).get("translatedText")
+                if not translated_part:
+                    raise RuntimeError("MyMemory returned no translated text")
+                translated_parts.append(translated_part)
+
+            translated_line = "".join(translated_parts)
+            if translated_line and not translated_line.startswith(prefix) and prefix:
+                translated_line = prefix + translated_line
+
+            # Punjabi in Kisan Ki Awaz means Pakistani Punjabi (Shahmukhi),
+            # not Hindi/Devanagari. Reject Hindi output and use the normal
+            # fallback chain rather than showing the wrong script.
+            if target == "pa":
+                devanagari_chars = sum(
+                    1 for ch in translated_line
+                    if "\u0900" <= ch <= "\u097f"
+                )
+                if devanagari_chars >= 3:
+                    raise RuntimeError(
+                        "Translation provider returned Hindi/Devanagari for Punjabi target"
+                    )
+
+            translated_lines.append(translated_line + newline)
+
+        translated = "".join(translated_lines)
 
         for i, url in enumerate(urls):
             translated = translated.replace(f"__KISAN_URL_{i}__", url)

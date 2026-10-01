@@ -84,61 +84,46 @@ class TranslationService:
         }
 
     def _mymemory_translate(self, text: str, target: str, source: str) -> Dict:
-        """Translate the entire response while preserving Markdown syntax."""
+        """Translate the complete response in one request to avoid request timeouts."""
         import re
         import requests
 
+        if not text or not text.strip():
+            return {
+                "translated_text": text,
+                "source_lang": source,
+                "target_lang": target,
+                "is_fallback": False,
+                "error": None,
+            }
+
+        # Protect URLs so the translation service cannot alter source links.
+        urls = []
+        def protect_url(match):
+            token = f"__KISAN_URL_{len(urls)}__"
+            urls.append(match.group(0))
+            return token
+
+        protected = re.sub(r"https?://\\S+", protect_url, text)
+
         session = requests.Session()
         session.headers.update({"User-Agent": "KisanKiAwaz/1.0"})
+        resp = session.get(
+            "https://api.mymemory.translated.net/get",
+            params={"q": protected[:4500], "langpair": f"{source}|{target}"},
+            timeout=5,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        translated = (data.get("responseData") or {}).get("translatedText")
+        if not translated:
+            raise RuntimeError("MyMemory returned no translated text")
 
-        # Preserve only structural Markdown markers. Everything human-readable,
-        # including headings, labels, warnings and verified-source descriptions,
-        # is sent for translation.
-        def translate_line(line: str) -> str:
-            if not line.strip():
-                return line
+        for i, url in enumerate(urls):
+            translated = translated.replace(f"__KISAN_URL_{i}__", url)
 
-            # Keep heading/bullet markers, but translate their actual text.
-            m = re.match(r"^(\s*)(#{1,6}\s+|[-*]\s+|\d+\.\s+)?(.*)$", line)
-            if not m:
-                return line
-            indent, marker, body = m.groups()
-            if not body.strip():
-                return line
-
-            # Keep URLs unchanged, but translate surrounding text.
-            parts = re.split(r"(https?://\\S+)", body)
-            result = []
-            for part in parts:
-                if re.match(r"^https?://", part):
-                    result.append(part)
-                    continue
-                if not part.strip():
-                    result.append(part)
-                    continue
-
-                # MyMemory has a practical query-size limit.
-                chunks = [part[i:i+450] for i in range(0, len(part), 450)]
-                translated_chunks = []
-                for chunk in chunks:
-                    resp = session.get(
-                        "https://api.mymemory.translated.net/get",
-                        params={"q": chunk, "langpair": f"{source}|{target}"},
-                        timeout=20,
-                    )
-                    resp.raise_for_status()
-                    data = resp.json()
-                    translated = (data.get("responseData") or {}).get("translatedText")
-                    if not translated:
-                        raise RuntimeError("MyMemory returned no translated text")
-                    translated_chunks.append(translated)
-                result.append("".join(translated_chunks))
-
-            return indent + (marker or "") + "".join(result)
-
-        translated_lines = [translate_line(line) for line in text.splitlines()]
         return {
-            "translated_text": "\n".join(translated_lines),
+            "translated_text": translated,
             "source_lang": source,
             "target_lang": target,
             "is_fallback": False,

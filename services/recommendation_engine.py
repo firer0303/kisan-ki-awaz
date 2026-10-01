@@ -285,7 +285,7 @@ class RecommendationEngine:
         source = market.get("source", "")
         if source:
             if lang_code == "ur":
-                lines.append(f"\nماخذ: {source}۔ یہ تازہ دستیاب منڈی ریٹ ہے؛ آپ کی مقامی منڈی میں تھوڑا فرق ہو سکتا ہے۔\n")
+                lines.append(f"\nمعلومات کا ذریعہ: {source}۔ یہ تازہ دستیاب منڈی ریٹ ہے، لیکن آپ کی مقامی منڈی میں قیمت کچھ مختلف ہو سکتی ہے۔\n")
             elif lang_code == "sd":
                 lines.append(f"\nذريعو: {source}. هي تازو دستياب اگهه آهي؛ مقامي منڊي ۾ ٿورو فرق ٿي سگهي ٿو.\n")
             elif lang_code == "pa":

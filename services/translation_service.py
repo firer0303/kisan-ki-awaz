@@ -84,41 +84,58 @@ class TranslationService:
         }
 
     def _mymemory_translate(self, text: str, target: str, source: str) -> Dict:
-        """Translate complete verified responses with MyMemory."""
+        """Translate the entire response while preserving Markdown syntax."""
         import re
         import requests
 
-        lines = text.splitlines()
-        translated_lines = []
-        for line in lines:
-            stripped = line.strip()
-            if not stripped or stripped.startswith("http://") or stripped.startswith("https://"):
-                translated_lines.append(line)
-                continue
-            match = re.match(r"^(\s*(?:[-*]\s+|#{1,6}\s+|\*\*[^*]+\*\*:\s*)?)(.*)$", line)
-            prefix, body = match.groups() if match else ("", line)
-            if len(body.strip()) < 2:
-                translated_lines.append(line)
-                continue
-            chunks = [body[i:i+450] for i in range(0, len(body), 450)]
-            out = []
-            for chunk in chunks:
-                resp = requests.get(
-                    "https://api.mymemory.translated.net/get",
-                    params={"q": chunk, "langpair": f"{source}|{target}"},
-                    timeout=12,
-                )
-                resp.raise_for_status()
-                data = resp.json()
-                translated = (data.get("responseData") or {}).get("translatedText")
-                if not translated:
-                    raise RuntimeError("MyMemory returned no translated text")
-                out.append(translated)
-            translated_lines.append(prefix + " ".join(out))
+        # Preserve only structural Markdown markers. Everything human-readable,
+        # including headings, labels, warnings and verified-source descriptions,
+        # is sent for translation.
+        def translate_line(line: str) -> str:
+            if not line.strip():
+                return line
 
-        result = "\n".join(translated_lines)
+            # Keep heading/bullet markers, but translate their actual text.
+            m = re.match(r"^(\s*)(#{1,6}\s+|[-*]\s+|\d+\.\s+)?(.*)$", line)
+            if not m:
+                return line
+            indent, marker, body = m.groups()
+            if not body.strip():
+                return line
+
+            # Keep URLs unchanged, but translate surrounding text.
+            parts = re.split(r"(https?://\\S+)", body)
+            result = []
+            for part in parts:
+                if re.match(r"^https?://", part):
+                    result.append(part)
+                    continue
+                if not part.strip():
+                    result.append(part)
+                    continue
+
+                # MyMemory has a practical query-size limit.
+                chunks = [part[i:i+450] for i in range(0, len(part), 450)]
+                translated_chunks = []
+                for chunk in chunks:
+                    resp = requests.get(
+                        "https://api.mymemory.translated.net/get",
+                        params={"q": chunk, "langpair": f"{source}|{target}"},
+                        timeout=15,
+                    )
+                    resp.raise_for_status()
+                    data = resp.json()
+                    translated = (data.get("responseData") or {}).get("translatedText")
+                    if not translated:
+                        raise RuntimeError("MyMemory returned no translated text")
+                    translated_chunks.append(translated)
+                result.append("".join(translated_chunks))
+
+            return indent + (marker or "") + "".join(result)
+
+        translated_lines = [translate_line(line) for line in text.splitlines()]
         return {
-            "translated_text": result,
+            "translated_text": "\n".join(translated_lines),
             "source_lang": source,
             "target_lang": target,
             "is_fallback": False,

@@ -6,6 +6,8 @@ REST API server exposing all AI services for the Android/web app.
 import base64
 import io
 import sys
+import os
+import httpx
 from pathlib import Path
 from typing import Optional, Dict
 
@@ -32,6 +34,8 @@ if STATIC_DIR.exists():
 
 language_service = LanguageService()
 engine: Optional[RecommendationEngine] = None
+ANSWER_SERVICE_URL = os.getenv('ANSWER_SERVICE_URL', '').rstrip('/')
+VISION_SERVICE_URL = os.getenv('VISION_SERVICE_URL', '').rstrip('/')
 
 def get_engine() -> RecommendationEngine:
     global engine
@@ -99,6 +103,11 @@ async def process_voice_query(req: VoiceQueryRequest):
     eng = get_engine()
     eng.language_service.set_language(lang_enum)
     try:
+        if ANSWER_SERVICE_URL:
+            async with httpx.AsyncClient(timeout=90) as client:
+                r = await client.post(f"{ANSWER_SERVICE_URL}/voice", json={"text": req.text.strip(), "language": req.language})
+                r.raise_for_status()
+                return _format_result(r.json())
         return _format_result(eng.process_voice_query(req.text.strip()))
     except Exception as exc:
         logger.exception("Voice query failed")
@@ -127,6 +136,21 @@ async def process_image_query(req: ImageAnalysisRequest):
     language_service.set_language(lang_enum)
     eng = get_engine()
     eng.language_service.set_language(lang_enum)
+    if VISION_SERVICE_URL and ANSWER_SERVICE_URL:
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG")
+        encoded = base64.b64encode(buf.getvalue()).decode("ascii")
+        try:
+            async with httpx.AsyncClient(timeout=120) as client:
+                vr = await client.post(f"{VISION_SERVICE_URL}/analyze", json={"image_base64": encoded})
+                vr.raise_for_status()
+                vision = vr.json()
+                ar = await client.post(f"{ANSWER_SERVICE_URL}/image", json={"question": req.question, "language": req.language, "input_type": req.input_type, "vision": vision})
+                ar.raise_for_status()
+                return _format_result(ar.json())
+        except Exception as exc:
+            logger.exception("AI service routing failed")
+            raise HTTPException(503, "AI image services are temporarily unavailable. Please try again.") from exc
     return await _run_image(eng, img, req.question, req.input_type)
 
 @app.post("/api/query/image-upload")
@@ -146,6 +170,21 @@ async def process_image_upload(file: UploadFile = File(...), question: str = For
     language_service.set_language(lang_enum)
     eng = get_engine()
     eng.language_service.set_language(lang_enum)
+    if VISION_SERVICE_URL and ANSWER_SERVICE_URL:
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG")
+        encoded = base64.b64encode(buf.getvalue()).decode("ascii")
+        try:
+            async with httpx.AsyncClient(timeout=120) as client:
+                vr = await client.post(f"{VISION_SERVICE_URL}/analyze", json={"image_base64": encoded})
+                vr.raise_for_status()
+                vision = vr.json()
+                ar = await client.post(f"{ANSWER_SERVICE_URL}/image", json={"question": question, "language": language, "input_type": input_type, "vision": vision})
+                ar.raise_for_status()
+                return _format_result(ar.json())
+        except Exception as exc:
+            logger.exception("AI service routing failed")
+            raise HTTPException(503, "AI image services are temporarily unavailable. Please try again.") from exc
     return await _run_image(eng, img, question, input_type)
 
 @app.post("/api/weather")

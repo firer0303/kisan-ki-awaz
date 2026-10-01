@@ -106,7 +106,9 @@ class LLMService:
         language_match = re.search(r"Respond entirely in ([^.]+)", prompt, re.IGNORECASE)
         if language_match:
             selected = language_match.group(1).strip().lower()
-            if selected.startswith("urdu"):
+            if selected.startswith("roman urdu"):
+                language = "ro"
+            elif selected.startswith("urdu"):
                 language = "ur"
             elif selected.startswith("sindhi"):
                 language = "sd"
@@ -162,7 +164,18 @@ class LLMService:
             elif line.startswith("---") and in_content:
                 break
 
-        if language == "ur":
+        if language == "ro":
+            assessment, recommendations, warnings, sources, confidence_label = "Jawab", "Kya karein", "Ehtiyat", "Moatabar zaraye", "Yaqeen ki satah"
+            intro = f"Aap ke sawal «{farmer_question or 'zari maslay'}» ke mutabiq dastiyab moatabar zaraati maloomat dekhi gayi hain."
+            no_evidence = "Is sawal ke bare mein abhi moatabar zaraati maloomat nahi mil sakin."
+            rec_intro = "Milne wali moatabar maloomat ke mutabiq aap ye kaam kar sakte hain."
+            warning = "Kisi bhi zaraati dawa ya chemical ko istemal karne se pehle packet par likhi hidayaat zaroor parhein. Zarurat ho to qareebi zaraati maahir se bhi mashwara karein."
+            source_default = "Moatabar zaraati maloomat"
+            confidence_high = "Zyada"
+            confidence_unable = "Yaqeen se nahi bataya ja sakta"
+            image_text = f"Tasveer ka tajziya: {detected} (yaqeen {confidence} feesad, khatre ki satah: {risk})"
+            consult = "Mazeed pakki rehnumai ke liye maqami zaraati maahir ya Mehkama-e-Zaraat se fasal check karwaein."
+        elif language == "ur":
             assessment = "جواب"
             recommendations = "کیا کریں"
             warnings = "احتیاط"
@@ -244,7 +257,7 @@ class LLMService:
             parts.append(f"{confidence_label}: {confidence_unable}۔")
 
         response_text = re.sub(r"\s+", " ", " ".join(p.strip() for p in parts if p and p.strip())).strip()
-        localized = language == "en"
+        localized = language in {"en", "ro"}
 
         if language != "en":
             try:

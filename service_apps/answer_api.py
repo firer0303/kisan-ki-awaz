@@ -63,7 +63,15 @@ async def image(req: ImageAnswerRequest):
     try:
         llm=e.llm_service.generate(prompt)
         raw=llm.get("text","")
-        if llm.get("localized") and llm.get("language") == req.language:
+        already_localized = bool(
+            llm.get("localized") and llm.get("language") == req.language
+        )
+        if already_localized and req.language == "pa":
+            already_localized = e.translation_service.is_valid_selected_language_output(
+                raw, "pa"
+            )
+
+        if already_localized:
             text=raw
             translation={"translated_text":text,"source_lang":"en","target_lang":req.language,"is_fallback":False}
         else:

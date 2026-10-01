@@ -201,102 +201,62 @@ class LLMService:
             warning = "Follow product label instructions for any agricultural chemical treatment and consult a local agricultural extension officer."
             source_default, confidence_high, confidence_unable, image_text, consult = "Verified agricultural knowledge base", "High", "Unable to verify", f"Image analysis: {detected} (Confidence: {confidence}%, Risk: {risk})", "Consult a local agricultural extension officer for final guidance."
 
-        response_parts = [f"## {assessment}\n\n"]
-        response_parts.append((intro if evidence_found else no_evidence) + "\n\n")
+        parts = []
+        parts.append(intro if evidence_found else no_evidence)
 
         if image_analysis:
             if language == "ur":
-                image_label = "تصویری تجزیہ"
-                response_parts.append(
-                    f"**{image_label}:** ممکنہ شناخت {detected}، اعتماد {confidence} فیصد، خطرے کی سطح {risk}۔\n\n"
-                )
+                parts.append(f"تصویری تجزیے کے مطابق ممکنہ شناخت {detected} ہے، اعتماد {confidence} فیصد اور خطرے کی سطح {risk} ہے۔")
             elif language == "sd":
-                response_parts.append(
-                    f"**تصويري جائزو:** ممڪن سڃاڻپ {detected}، اعتماد {confidence} سيڪڙو، خطري جي سطح {risk}.\n\n"
-                )
+                parts.append(f"تصويري جائزي مطابق ممڪن سڃاڻپ {detected} آهي، اعتماد {confidence} سيڪڙو ۽ خطري جي سطح {risk} آهي.")
             elif language == "pa":
-                response_parts.append(
-                    f"**تصویری جائزہ:** ممکنہ شناخت {detected}، اعتماد {confidence} فیصد، خطرے دی سطح {risk}۔\n\n"
-                )
+                parts.append(f"تصویری جائزے مطابق ممکنہ شناخت {detected} اے، اعتماد {confidence} فیصد تے خطرے دی سطح {risk} اے۔")
             elif language == "ps":
-                response_parts.append(
-                    f"**د انځور ارزونه:** احتمالي پېژندنه {detected}، د باور کچه {confidence} سلنه، د خطر کچه {risk}.\n\n"
-                )
+                parts.append(f"د انځور د ارزونې له مخې احتمالي پېژندنه {detected} ده، د باور کچه {confidence} سلنه او د خطر کچه {risk} ده.")
             elif language == "bal":
-                response_parts.append(
-                    f"**تصویر ءِ جائزگ:** ممکنہ شناخت {detected}، اعتمادءِ سطح {confidence} فیصد، خطرہ ءِ سطح {risk}.\n\n"
-                )
+                parts.append(f"تصویر ءِ جائزگ ءَ ممکنہ شناخت {detected} اَنت، اعتمادءِ سطح {confidence} فیصد و خطرہ ءِ سطح {risk} اَنت.")
+            else:
+                parts.append(f"Image analysis indicates {detected} with {confidence}% confidence and {risk} risk.")
 
         if evidence_found:
-            response_parts.append(f"## {recommendations}\n\n{rec_intro}\n\n")
-
+            parts.append(rec_intro)
             if content_lines:
-                full_content = " ".join(content_lines[:12])
+                evidence_summary = " ".join(content_lines[:12])
                 sentences = [
                     s.strip()
-                    for s in re.split(r"[.!?۔؟]+", full_content)
+                    for s in re.split(r"[.!?۔؟]+", evidence_summary)
                     if len(s.strip()) > 10
                 ]
-                for sentence in sentences[:10]:
-                    response_parts.append(f"- {sentence}\n")
-                response_parts.append("\n")
-
-            response_parts.append(f"## {warnings}\n\n")
-            response_parts.append(f"- {warning}\n")
-            response_parts.append(f"- {consult}\n\n")
-
-            detail_heading = {
-                "ur": "اہم معلومات",
-                "sd": "اهم معلومات",
-                "pa": "اہم معلومات",
-                "ps": "مهم معلومات",
-                "bal": "مهم معلومات",
-                "en": "Important Information",
-            }.get(language, "اہم معلومات")
-            response_parts.append(f"## {detail_heading}\n\n")
-            if content_lines:
-                for sentence in sentences[:8]:
-                    response_parts.append(f"- {sentence}\n")
+                if sentences:
+                    parts.append(" ".join(sentences[:8]))
             else:
-                response_parts.append(f"- {consult}\n")
-            response_parts.append("\n")
-
-            response_parts.append(f"## {sources}\n\n")
+                parts.append(consult)
+            parts.append(warning)
+            parts.append(consult)
             source_label = {
-                "ur": "ماخذ",
-                "sd": "ذريعو",
-                "pa": "ماخذ",
-                "ps": "سرچینه",
-                "bal": "ماخذ",
-                "en": "Source",
+                "ur": "ماخذ", "sd": "ذريعو", "pa": "ماخذ",
+                "ps": "سرچینه", "bal": "ماخذ", "en": "Source",
             }.get(language, "ماخذ")
-            if source_name:
-                response_parts.append(f"- {source_label}: {source_name}\n\n")
-            else:
-                response_parts.append(f"- {source_default}\n\n")
-
-            response_parts.append(f"**{confidence_label}:** {confidence_high}\n")
+            parts.append(f"{source_label}: {source_name}۔" if source_name else f"{source_default}۔")
+            parts.append(f"{confidence_label}: {confidence_high}۔")
         else:
-            response_parts.append(f"## {recommendations}\n\n{consult}\n\n")
-            response_parts.append(f"**{confidence_label}:** {confidence_unable}\n")
+            parts.append(consult)
+            parts.append(f"{confidence_label}: {confidence_unable}۔")
 
-        response_text = "".join(response_parts)
+        response_text = re.sub(r"\s+", " ", " ".join(p.strip() for p in parts if p and p.strip())).strip()
+        localized = language == "en"
 
         if language != "en":
             try:
                 translator = TranslationService()
-                result = translator.translate(
-                    response_text,
-                    target_lang=language,
-                    source_lang="en",
-                )
+                result = translator.translate(response_text, target_lang=language, source_lang="en")
                 if result.get("translated_text") and not result.get("is_fallback"):
                     response_text = result["translated_text"]
+                    localized = True
                 else:
-                    logger.warning(
-                        f"Fallback evidence localization unavailable: {result.get('error')}"
-                    )
+                    logger.warning(f"Fallback evidence localization unavailable: {result.get('error')}")
             except Exception as exc:
+                localized = False
                 logger.warning(f"Fallback evidence localization failed: {exc}")
 
         return {
@@ -305,4 +265,6 @@ class LLMService:
             "model": "verified-fallback",
             "is_demo": False,
             "error": None,
+            "language": language,
+            "localized": bool(localized),
         }

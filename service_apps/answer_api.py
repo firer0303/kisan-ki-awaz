@@ -62,12 +62,12 @@ async def image(req: ImageAnswerRequest):
         language=req.language)
     try:
         llm=e.llm_service.generate(prompt)
-        text, translation=e._localize_response(llm.get("text",""),req.language)
+        text, translation=e._localize_response(llm.get("text",""),req.language,fallback_prompt=prompt)
         provider=llm.get("provider","unknown"); demo=bool(llm.get("is_demo",False)) or bool(vision.get("is_demo",False))
     except Exception as exc:
         text,translation=e._image_fallback_response(vision,req.language,exc)
         provider="answer-fallback"; demo=True
     narration=e.narration_service.prepare_narration(text)
-    return {"success":True,"response_text":text,"vision_result":vision,"sources":evidence.get("citations",[]),
+    return {"success":True,"response_text":text,"vision_result":vision,"sources":e._localize_result_metadata(evidence.get("citations",[]),req.language),
             "evidence_count":evidence.get("evidence_count",0),"narration":narration,"translation_info":translation,
             "llm_provider":provider,"is_demo":demo,"input_type":req.input_type}

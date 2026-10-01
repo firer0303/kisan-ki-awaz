@@ -93,7 +93,7 @@ class RAGService:
             "4. If evidence is insufficient, state that clearly and recommend "
             "consulting a local agricultural extension officer.\n"
             "5. Respond entirely in the farmer's selected language. Do not switch to English unless the farmer selected English or a technical term has no natural translation.\n"
-            "6. Use simple, clear, everyday language that Pakistani farmers can understand easily. For Urdu, use modern everyday Pakistani Urdu like people commonly speak and read today. Keep sentences short, natural, friendly, and very easy for farmers. Avoid difficult, literary, bookish, bureaucratic, or overly formal words. Prefer simple words such as "بتائیں", "آسان طریقہ", "بیماری کی نشانیاں", "بچاؤ", "علاج", "احتیاط", "معتبر معلومات", and "یقین کی سطح".\n"
+            "6. Use simple, clear, everyday language that Pakistani farmers can understand easily. For Urdu, use modern everyday Pakistani Urdu like people commonly speak and read today. Keep sentences short, natural, friendly, and very easy for farmers. Avoid difficult, literary, bookish, bureaucratic, or overly formal words. Prefer simple words such as 'بتائیں', 'آسان طریقہ', 'بیماری کی نشانیاں', 'بچاؤ', 'علاج', 'احتیاط', 'معتبر معلومات', and 'یقین کی سطح'.\n"
             "7. Include specific, actionable recommendations (dosages, timing, methods).\n"
             "8. Always include a 'Verified Sources' section listing the sources used.\n"
         )

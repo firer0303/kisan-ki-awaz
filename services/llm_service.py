@@ -112,8 +112,12 @@ class LLMService:
                 language = "ur"
             elif selected.startswith("sindhi"):
                 language = "sd"
+            elif selected.startswith("punjabi") and ("gurmukhi" in selected or "hindi script" in selected):
+                language = "pa-hi"
             elif selected.startswith("punjabi"):
                 language = "pa"
+            elif selected.startswith("hindi"):
+                language = "hi"
             elif selected.startswith("pashto"):
                 language = "ps"
             elif selected.startswith("balochi"):

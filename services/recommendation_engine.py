@@ -298,6 +298,44 @@ class RecommendationEngine:
                 lines.append(f"\nSource: {source}. This is the latest available rate; local mandi prices can vary.\n")
         return "".join(lines)
 
+    def _to_single_paragraph(self, text: str) -> str:
+        """Convert structured answer text into one smooth readable paragraph."""
+        import re
+
+        if not text:
+            return text
+
+        lines = [line.strip() for line in str(text).replace("\r", "").split("\n") if line.strip()]
+        parts = []
+
+        for line in lines:
+            # Convert headings into inline labels.
+            line = re.sub(r"^#{1,6}\s*", "", line)
+
+            # Remove Markdown list markers while keeping the information.
+            line = re.sub(r"^[-*]\s+", "", line)
+            line = re.sub(r"^\d+[.)]\s+", "", line)
+
+            # Turn Markdown emphasis into plain text.
+            line = line.replace("**", "").replace("__", "")
+
+            # Make section labels natural inside the paragraph.
+            line = re.sub(r"^Assessment / Answer\s*:?\s*", "", line, flags=re.I)
+            line = re.sub(r"^Recommendations\s*:?\s*", "", line, flags=re.I)
+            line = re.sub(r"^Warnings / Precautions\s*:?\s*", "", line, flags=re.I)
+            line = re.sub(r"^Verified Sources\s*:?\s*", "", line, flags=re.I)
+            line = re.sub(r"^Confidence Level\s*:?\s*", "", line, flags=re.I)
+
+            line = re.sub(r"\s+", " ", line).strip()
+            if line:
+                parts.append(line)
+
+        result = " ".join(parts)
+        # Avoid accidental duplicated punctuation from joining list items.
+        result = re.sub(r"\s+([،۔,:;!?])", r"\1", result)
+        result = re.sub(r"([۔!?])\s*\1+", r"\1", result)
+        return result.strip()
+
     def process_voice_query(self, text: str) -> Dict:
         lang_code = self.language_service.current_language.value
         evidence = self.rag_service.retrieve_evidence(text, top_k=3)
@@ -329,6 +367,8 @@ class RecommendationEngine:
         market_text = self._market_section(market, lang_code)
         if market_text:
             response_text = response_text.rstrip() + "\n\n" + market_text
+
+        response_text = self._to_single_paragraph(response_text)
 
         narration = self.narration_service.prepare_narration(response_text)
         return {

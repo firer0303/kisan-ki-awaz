@@ -806,7 +806,8 @@
                 <div class="result-box${isRtl?' rtl':''}">${formatResponse(data.response_text || '')}</div></div>`;
 
             if (data.sources && data.sources.length) {
-                html += '<div class="card"><div class="card-title"><span class="material-icons-round">verified</span>Verified Sources</div>';
+                const sourceTitles = {en:'Verified Sources',ur:'تصدیق شدہ ذرائع',sd:'تصديق ٿيل ذريعا',pa:'تصدیق شدہ ذرائع',ps:'تایید شوې سرچینې',bal:'تصدیقءَ بوتگین سراجاݔں'};
+                html += '<div class="card"><div class="card-title"><span class="material-icons-round">verified</span>' + (sourceTitles[currentLang] || sourceTitles.en) + '</div>';
                 data.sources.forEach(s => {
                     html += `<div class="source-card"><div class="org">🏛️ ${s.organization}</div>
                         <div class="doc">📄 ${s.document_title}</div>
@@ -840,8 +841,44 @@
             area.innerHTML = `<div class="error-box">❌ ${message}</div>`;
         }
 
+        function escapeHtml(value) {
+            return String(value || '').replace(/[&<>"']/g, function(ch) {
+                return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch];
+            });
+        }
+
+        function inlineMarkdown(value) {
+            let s = escapeHtml(value);
+            s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            s = s.replace(/__(.+?)__/g, '<strong>$1</strong>');
+            s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            return s;
+        }
+
         function formatResponse(text) {
-            return text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            const lines = String(text || '').replace(/\r/g, '').split('\n');
+            let html = '', inList = false;
+            function closeList() { if (inList) { html += '</ul>'; inList = false; } }
+            lines.forEach(function(raw) {
+                const line = raw.trim();
+                if (!line) { closeList(); return; }
+                const heading = line.match(/^#{1,6}\s+(.+)$/);
+                if (heading) {
+                    closeList();
+                    html += '<h3 style="margin:16px 0 8px;font-size:1.05rem;color:var(--green-900);">' + inlineMarkdown(heading[1]) + '</h3>';
+                    return;
+                }
+                const bullet = line.match(/^[-*]\s+(.+)$/);
+                if (bullet) {
+                    if (!inList) { html += '<ul style="margin:8px 0;padding-inline-start:22px;">'; inList = true; }
+                    html += '<li style="margin:5px 0;">' + inlineMarkdown(bullet[1]) + '</li>';
+                    return;
+                }
+                closeList();
+                html += '<p style="margin:7px 0;">' + inlineMarkdown(line) + '</p>';
+            });
+            closeList();
+            return html;
         }
 
         // ── Market ──

@@ -18,8 +18,10 @@ class TranslationService:
     LANG_MAP = {
         "ur": "ur",   # Pakistani Urdu
         "ro": "ur",   # Roman Urdu is generated from Urdu then romanized
-        "sd": "sd",   # Sindhi (limited support)
-        "pa": "pa",   # Punjabi
+        "pa-hi": "pa", # Punjabi in Gurmukhi script
+        "hi": "hi",    # Hindi / Devanagari
+        "sd": "sd",    # Sindhi (limited support)
+        "pa": "pa",    # Punjabi / Shahmukhi
         "ps": "ps",   # Pashto
         "bal": "ur",  # Balochi -> translate via Urdu
         "en": "en",   # English
@@ -70,6 +72,46 @@ class TranslationService:
                 "temperature": "درجہ حرارت",
                 "confidence": "یقین کی سطح",
                 "risk level": "خطرے کی سطح",
+            },
+            "pa-hi": {
+                "Puccinia triticina": "ਕਣਕ ਦੇ ਪੱਤਿਆਂ ਦਾ ਜੰਗ",
+                "Wheat leaf rust": "ਕਣਕ ਦੇ ਪੱਤਿਆਂ ਦਾ ਜੰਗ",
+                "wheat leaf rust": "ਕਣਕ ਦੇ ਪੱਤਿਆਂ ਦਾ ਜੰਗ",
+                "circular to oval": "ਗੋਲ ਜਾਂ ਅੰਡਾਕਾਰ",
+                "circular": "ਗੋਲ",
+                "oval": "ਅੰਡਾਕਾਰ",
+                "pustules": "ਛੋਟੇ ਉੱਭਰੇ ਹੋਏ ਦਾਗ",
+                "orange-brown pustules": "ਸੰਤਰੀ-ਭੂਰੇ ਛੋਟੇ ਉੱਭਰੇ ਹੋਏ ਦਾਗ",
+                "spores": "ਬਿਮਾਰੀ ਫੈਲਾਉਣ ਵਾਲੇ ਬਾਰੀਕ ਕਣ",
+                "fungus": "ਫਫੂੰਦ",
+                "fungal disease": "ਫਫੂੰਦ ਦੀ ਬਿਮਾਰੀ",
+                "humidity": "ਨਮੀ",
+                "high humidity": "ਜ਼ਿਆਦਾ ਨਮੀ",
+                "management": "ਬਚਾਅ ਅਤੇ ਕਾਬੂ ਦੇ ਤਰੀਕੇ",
+                "precautions": "ਸਾਵਧਾਨੀ",
+                "temperature": "ਤਾਪਮਾਨ",
+                "confidence": "ਭਰੋਸੇ ਦਾ ਪੱਧਰ",
+                "risk level": "ਖਤਰੇ ਦਾ ਪੱਧਰ",
+            },
+            "hi": {
+                "Puccinia triticina": "गेहूँ के पत्तों का रतुआ रोग",
+                "Wheat leaf rust": "गेहूँ के पत्तों का रतुआ रोग",
+                "wheat leaf rust": "गेहूँ के पत्तों का रतुआ रोग",
+                "circular to oval": "गोल या अंडाकार",
+                "circular": "गोल",
+                "oval": "अंडाकार",
+                "pustules": "छोटे उभरे हुए धब्बे",
+                "orange-brown pustules": "नारंगी-भूरे छोटे उभरे हुए धब्बे",
+                "spores": "रोग फैलाने वाले बारीक कण",
+                "fungus": "फफूंद",
+                "fungal disease": "फफूंद की बीमारी",
+                "humidity": "नमी",
+                "high humidity": "ज़्यादा नमी",
+                "management": "बचाव और नियंत्रण के तरीके",
+                "precautions": "सावधानी",
+                "temperature": "तापमान",
+                "confidence": "विश्वास स्तर",
+                "risk level": "जोखिम स्तर",
             },
             "sd": {
                 "Puccinia triticina": "ڪڻڪ جي پنن تي زنگ پيدا ڪندڙ ڦڦوند",
@@ -209,6 +251,25 @@ class TranslationService:
                     f"{target_lang} translation returned Gurmukhi script"
                 )
 
+        if target_lang == "hi":
+            devanagari = sum(1 for ch in translated if "\u0900" <= ch <= "\u097f")
+            if devanagari < 3:
+                raise RuntimeError("Hindi translation did not return Devanagari script")
+
+        if target_lang == "pa-hi":
+            gurmukhi = sum(1 for ch in translated if "\u0a00" <= ch <= "\u0a7f")
+            devanagari = sum(1 for ch in translated if "\u0900" <= ch <= "\u097f")
+            arabic = sum(
+                1 for ch in translated
+                if "\u0600" <= ch <= "\u06ff"
+                or "\u0750" <= ch <= "\u077f"
+                or "\ufb50" <= ch <= "\ufdff"
+            )
+            if gurmukhi < 3 or devanagari >= 1 or arabic >= 4:
+                raise RuntimeError(
+                    "Punjabi Gurmukhi translation returned the wrong script"
+                )
+
         if target_lang == "pa":
             shahmukhi = sum(
                 1
@@ -263,10 +324,6 @@ class TranslationService:
         # Try deep-translator first (more reliable)
         try:
             result = self._deep_translate(text, target_code, source_lang)
-            if target_lang == "ro":
-                result["translated_text"] = self._romanize_urdu(result.get("translated_text", ""))
-            if target_lang == "ro":
-                result["translated_text"] = self._romanize_urdu(result.get("translated_text", ""))
             if target_lang == "ro":
                 result["translated_text"] = self._romanize_urdu(result.get("translated_text", ""))
             result["translated_text"] = self._localize_technical_terms(result.get("translated_text", ""), target_lang)
@@ -371,8 +428,6 @@ class TranslationService:
                 if not translated_part:
                     raise RuntimeError("MyMemory returned no translated text")
 
-                # Punjabi in Kisan Ki Awaz means Pakistani Punjabi/Shahmukhi.
-                # Do not accept Hindi/Devanagari output.
                 if target == "pa":
                     devanagari_chars = sum(
                         1 for ch in translated_part
@@ -382,6 +437,15 @@ class TranslationService:
                         raise RuntimeError(
                             "Translation provider returned Hindi/Devanagari for Punjabi target"
                         )
+                if target == "hi":
+                    devanagari_chars = sum(1 for ch in translated_part if "\u0900" <= ch <= "\u097f")
+                    if devanagari_chars < 3:
+                        raise RuntimeError("Hindi translation returned non-Devanagari text")
+                if target == "pa-hi":
+                    gurmukhi_chars = sum(1 for ch in translated_part if "\u0a00" <= ch <= "\u0a7f")
+                    devanagari_chars = sum(1 for ch in translated_part if "\u0900" <= ch <= "\u097f")
+                    if gurmukhi_chars < 3 or devanagari_chars >= 1:
+                        raise RuntimeError("Punjabi Gurmukhi translation returned wrong script")
 
                 out.append(translated_part.strip())
 

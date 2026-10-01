@@ -2,7 +2,7 @@
 Kisan Ki Awaz - Language Management Service
 =============================================
 Manages multilingual support for 7 languages:
-Urdu, Roman Urdu, Sindhi, Punjabi, Pashto, Balochi, and English.
+Urdu, Roman Urdu, Roman Urdu, Sindhi, Punjabi, Pashto, Balochi, and English.
 
 Language selection happens BEFORE any voice/camera/image input
 and persists throughout the entire session.
@@ -15,6 +15,7 @@ from typing import Dict, Optional
 class SupportedLanguage(str, Enum):
     """Enumeration of all supported languages."""
     URDU = "ur"
+    ROMAN_URDU = "ro"
     SINDHI = "sd"
     PUNJABI = "pa"
     PASHTO = "ps"
@@ -75,8 +76,8 @@ LANGUAGE_REGISTRY: Dict[SupportedLanguage, LanguageConfig] = {
     ),
     SupportedLanguage.PUNJABI: LanguageConfig(
         code="pa",
-        name_en="Punjabi",
-        name_native="پنجابی",
+        name_en="Punjabi (Pakistan)",
+        name_native="پنجابی (شاہ مکھی)",
         locale="pa-PK",
         tts_code="pa",
         stt_code="pa-IN",

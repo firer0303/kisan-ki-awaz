@@ -88,6 +88,9 @@ class TranslationService:
         import re
         import requests
 
+        session = requests.Session()
+        session.headers.update({"User-Agent": "KisanKiAwaz/1.0"})
+
         # Preserve only structural Markdown markers. Everything human-readable,
         # including headings, labels, warnings and verified-source descriptions,
         # is sent for translation.
@@ -118,10 +121,10 @@ class TranslationService:
                 chunks = [part[i:i+450] for i in range(0, len(part), 450)]
                 translated_chunks = []
                 for chunk in chunks:
-                    resp = requests.get(
+                    resp = session.get(
                         "https://api.mymemory.translated.net/get",
                         params={"q": chunk, "langpair": f"{source}|{target}"},
-                        timeout=15,
+                        timeout=20,
                     )
                     resp.raise_for_status()
                     data = resp.json()

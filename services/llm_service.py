@@ -163,11 +163,11 @@ class LLMService:
                 break
 
         if language == "ur":
-            assessment = "تشخیص / جواب"
-            recommendations = "سفارشات"
-            warnings = "احتیاطی تدابیر"
-            sources = "تصدیق شدہ ذرائع"
-            confidence_label = "اعتماد کی سطح"
+            assessment = "جواب"
+            recommendations = "کیا کریں"
+            warnings = "احتیاط"
+            sources = "معتبر ذرائع"
+            confidence_label = "یقین کی سطح"
             intro = f"آپ کے سوال «{farmer_question or 'زرعی مسئلے'}» کے مطابق دستیاب معتبر زرعی معلومات دیکھی گئی ہیں۔"
             no_evidence = "اس سوال کے بارے میں ابھی معتبر زرعی معلومات نہیں مل سکیں۔"
             rec_intro = "دستیاب معتبر زرعی معلومات کے مطابق آپ یہ کام کر سکتے ہیں۔"

@@ -163,11 +163,40 @@ class TranslationService:
             )
 
         if target_lang == "pa":
+            # Kisan Ki Awaz Punjabi means Pakistani Punjabi in Shahmukhi
+            # (Arabic-derived script), not Hindi/Devanagari or Gurmukhi.
             devanagari = sum(1 for ch in translated if "\u0900" <= ch <= "\u097f")
-            if devanagari >= 3:
+            gurmukhi = sum(1 for ch in translated if "\u0a00" <= ch <= "\u0a7f")
+            shahmukhi = sum(
+                1
+                for ch in translated
+                if (
+                    "\u0600" <= ch <= "\u06ff"
+                    or "\u0750" <= ch <= "\u077f"
+                    or "\ufb50" <= ch <= "\ufdff"
+                )
+            )
+
+            if devanagari >= 1:
                 raise RuntimeError(
                     "Punjabi translation returned Hindi/Devanagari script"
                 )
+            if gurmukhi >= 1:
+                raise RuntimeError(
+                    "Punjabi translation returned Gurmukhi script"
+                )
+            if shahmukhi < 4:
+                raise RuntimeError(
+                    "Punjabi translation did not return Pakistani Shahmukhi script"
+                )
+
+    def is_valid_selected_language_output(self, translated: str, target_lang: str) -> bool:
+        """Return True only when output is safe to display in the selected language."""
+        try:
+            self._validate_selected_language(translated, target_lang)
+            return True
+        except Exception:
+            return False
 
     def translate(
         self,

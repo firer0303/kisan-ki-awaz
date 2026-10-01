@@ -16,6 +16,8 @@ class SupportedLanguage(str, Enum):
     """Enumeration of all supported languages."""
     URDU = "ur"
     ROMAN_URDU = "ro"
+    PUNJABI_GURMUKHI = "pa-hi"
+    HINDI = "hi"
     SINDHI = "sd"
     PUNJABI = "pa"
     PASHTO = "ps"
@@ -61,6 +63,28 @@ LANGUAGE_REGISTRY: Dict[SupportedLanguage, LanguageConfig] = {
         stt_code="ur-PK",
         rtl=False,
         font_family="'Inter', 'Segoe UI', sans-serif",
+        fallback_tts=None
+    ),
+    SupportedLanguage.PUNJABI_GURMUKHI: LanguageConfig(
+        code="pa-hi",
+        name_en="Punjabi (Gurmukhi / Hindi Script)",
+        name_native="ਪੰਜਾਬੀ (ਗੁਰਮੁਖੀ)",
+        locale="pa-IN",
+        tts_code="pa",
+        stt_code="pa-IN",
+        rtl=False,
+        font_family="'Noto Sans Gurmukhi', 'Inter', sans-serif",
+        fallback_tts=None
+    ),
+    SupportedLanguage.HINDI: LanguageConfig(
+        code="hi",
+        name_en="Hindi",
+        name_native="हिन्दी",
+        locale="hi-IN",
+        tts_code="hi",
+        stt_code="hi-IN",
+        rtl=False,
+        font_family="'Noto Sans Devanagari', 'Inter', sans-serif",
         fallback_tts=None
     ),
     SupportedLanguage.SINDHI: LanguageConfig(
@@ -355,6 +379,39 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
     },
 }
 
+
+_HINDI_UI = {
+    "app_title": "किसान की आवाज", "app_subtitle": "किसानों के लिए AI खेती सहायक",
+    "select_language": "अपनी भाषा चुनें", "voice_input": "आवाज़ से पूछें",
+    "camera_input": "तस्वीर लें", "image_upload": "तस्वीर अपलोड करें",
+    "analyzing": "जांच हो रही है...", "verified_sources": "भरोसेमंद स्रोत",
+    "confidence": "विश्वास स्तर", "risk_level": "जोखिम स्तर",
+    "recommendations": "क्या करें", "why_this": "यह सलाह क्यों?",
+    "no_source": "कोई भरोसेमंद स्रोत उपलब्ध नहीं",
+    "low_confidence_warning": "कम विश्वास - कृपया विशेषज्ञ से सलाह लें",
+    "demo_mode": "डेमो मोड", "pause": "रोकें", "resume": "जारी रखें",
+    "replay": "दोबारा सुनें", "stop": "बंद करें",
+    "narration_fallback_notice": "आवाज़ आपकी चुनी हुई भाषा में उपलब्ध नहीं है",
+    "crop_analysis": "फसल की जांच", "disease_pest": "बीमारी / कीड़ा",
+    "market_info": "मंडी की जानकारी", "weather_alerts": "मौसम की जानकारी", "history": "इतिहास",
+}
+_PUNJABI_GURMUKHI_UI = {
+    "app_title": "ਕਿਸਾਨ ਕੀ ਆਵਾਜ਼", "app_subtitle": "ਕਿਸਾਨਾਂ ਲਈ AI ਖੇਤੀ ਸਹਾਇਕ",
+    "select_language": "ਆਪਣੀ ਭਾਸ਼ਾ ਚੁਣੋ", "voice_input": "ਆਵਾਜ਼ ਨਾਲ ਪੁੱਛੋ",
+    "camera_input": "ਤਸਵੀਰ ਲਓ", "image_upload": "ਤਸਵੀਰ ਅੱਪਲੋਡ ਕਰੋ",
+    "analyzing": "ਜਾਂਚ ਹੋ ਰਹੀ ਹੈ...", "verified_sources": "ਭਰੋਸੇਯੋਗ ਸਰੋਤ",
+    "confidence": "ਭਰੋਸੇ ਦਾ ਪੱਧਰ", "risk_level": "ਖਤਰੇ ਦਾ ਪੱਧਰ",
+    "recommendations": "ਕੀ ਕਰਨਾ ਹੈ", "why_this": "ਇਹ ਸਲਾਹ ਕਿਉਂ?",
+    "no_source": "ਕੋਈ ਭਰੋਸੇਯੋਗ ਸਰੋਤ ਉਪਲਬਧ ਨਹੀਂ",
+    "low_confidence_warning": "ਘੱਟ ਭਰੋਸਾ - ਕਿਰਪਾ ਕਰਕੇ ਮਾਹਿਰ ਨਾਲ ਸਲਾਹ ਕਰੋ",
+    "demo_mode": "ਡੈਮੋ ਮੋਡ", "pause": "ਰੋਕੋ", "resume": "ਜਾਰੀ ਰੱਖੋ",
+    "replay": "ਦੁਬਾਰਾ ਸੁਣੋ", "stop": "ਬੰਦ ਕਰੋ",
+    "narration_fallback_notice": "ਆਵਾਜ਼ ਤੁਹਾਡੀ ਚੁਣੀ ਭਾਸ਼ਾ ਵਿੱਚ ਉਪਲਬਧ ਨਹੀਂ ਹੈ",
+    "crop_analysis": "ਫਸਲ ਦੀ ਜਾਂਚ", "disease_pest": "ਬਿਮਾਰੀ / ਕੀੜਾ",
+    "market_info": "ਮੰਡੀ ਦੀ ਜਾਣਕਾਰੀ", "weather_alerts": "ਮੌਸਮ ਦੀ ਜਾਣਕਾਰੀ", "history": "ਇਤਿਹਾਸ",
+}
+for _k, _v in _HINDI_UI.items(): UI_TRANSLATIONS[_k]["hi"] = _v
+for _k, _v in _PUNJABI_GURMUKHI_UI.items(): UI_TRANSLATIONS[_k]["pa-hi"] = _v
 
 class LanguageService:
     """

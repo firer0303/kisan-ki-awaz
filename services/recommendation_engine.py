@@ -356,11 +356,21 @@ class RecommendationEngine:
             llm_result = llm_future.result()
             market = market_future.result() if market_future else {}
 
-        response_text, translation_info = self._localize_response(
-            llm_result.get("text", "Unable to generate response."),
-            lang_code,
-            fallback_prompt=prompt,
-        )
+        raw_response = llm_result.get("text", "Unable to generate response.")
+        if llm_result.get("localized") and llm_result.get("language") == lang_code:
+            response_text = raw_response
+            translation_info = {
+                "translated_text": response_text,
+                "source_lang": "en",
+                "target_lang": lang_code,
+                "is_fallback": False,
+            }
+        else:
+            response_text, translation_info = self._localize_response(
+                raw_response,
+                lang_code,
+                fallback_prompt=prompt,
+            )
 
         # Add live market information as a separate, easy-to-read section
         # after the translated answer so numeric price data is never lost.

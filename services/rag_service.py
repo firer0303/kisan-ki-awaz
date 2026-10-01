@@ -92,7 +92,7 @@ class RAGService:
             "3. Never present a low-confidence diagnosis as a confirmed disease.\n"
             "4. If evidence is insufficient, state that clearly and recommend "
             "consulting a local agricultural extension officer.\n"
-            "5. Use simple, farmer-friendly language appropriate for the selected language.\n"
+            "5. Respond entirely in the farmer's selected language. Do not switch to English unless the farmer selected English or a technical term has no natural translation.\n"
             "6. Include specific, actionable recommendations (dosages, timing, methods).\n"
             "7. Always include a 'Verified Sources' section listing the sources used.\n"
         )
@@ -139,7 +139,7 @@ class RAGService:
             f"{evidence_section}\n"
             f"{image_section}\n"
             f"Farmer's Question: {farmer_question}\n\n"
-            f"Respond in {lang_instruction} "
+            f"Respond entirely in {lang_instruction}. Do not translate the answer back to English. "
             f"with a clear, structured answer including:\n"
             f"1. Brief assessment/answer\n"
             f"2. Specific recommendations (with dosages/timing where applicable)\n"

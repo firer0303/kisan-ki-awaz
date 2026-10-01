@@ -28,6 +28,32 @@ class TranslationService:
         self._translator = None
         logger.info("Translation service initialized")
 
+    def _validate_selected_language(self, translated: str, target_lang: str) -> None:
+        """Reject obvious English/Hindi leakage in non-English farmer output."""
+        import re
+
+        if not translated or target_lang == "en":
+            return
+
+        cleaned = re.sub(r"https?://\S+", "", translated)
+        cleaned = re.sub(r"__KISAN_[A-Z0-9_]+__", "", cleaned)
+
+        # Any remaining lowercase English word means the response is not fully
+        # localized. Official names/acronyms are normally uppercase and URLs
+        # were removed above.
+        leaked = re.findall(r"\b[a-z]{2,}\b", cleaned)
+        if leaked:
+            raise RuntimeError(
+                f"English text detected in {target_lang} translation: {', '.join(leaked[:6])}"
+            )
+
+        if target_lang == "pa":
+            devanagari = sum(1 for ch in translated if "\u0900" <= ch <= "\u097f")
+            if devanagari >= 3:
+                raise RuntimeError(
+                    "Punjabi translation returned Hindi/Devanagari script"
+                )
+
     def translate(
         self,
         text: str,
@@ -58,20 +84,26 @@ class TranslationService:
 
         # Try deep-translator first (more reliable)
         try:
-            return self._deep_translate(text, target_code, source_lang)
+            result = self._deep_translate(text, target_code, source_lang)
+            self._validate_selected_language(result.get("translated_text", ""), target_lang)
+            return result
         except Exception as e:
             logger.warning(f"deep-translator failed: {e}")
 
         # Fallback: googletrans
         try:
-            return self._googletrans_translate(text, target_code, source_lang)
+            result = self._googletrans_translate(text, target_code, source_lang)
+            self._validate_selected_language(result.get("translated_text", ""), target_lang)
+            return result
         except Exception as e:
             logger.warning(f"googletrans failed: {e}")
 
         # Last-resort public translation service. Translate line-by-line so
         # Markdown headings, bullets, URLs and source formatting remain usable.
         try:
-            return self._mymemory_translate(text, target_code, source_lang)
+            result = self._mymemory_translate(text, target_code, source_lang)
+            self._validate_selected_language(result.get("translated_text", ""), target_lang)
+            return result
         except Exception as e:
             logger.warning(f"MyMemory translation failed: {e}")
 

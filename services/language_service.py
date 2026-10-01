@@ -42,13 +42,24 @@ class LanguageConfig:
 LANGUAGE_REGISTRY: Dict[SupportedLanguage, LanguageConfig] = {
     SupportedLanguage.URDU: LanguageConfig(
         code="ur",
-        name_en="Urdu",
+        name_en="Urdu (Pakistan)",
         name_native="اردو",
         locale="ur-PK",
         tts_code="ur",
         stt_code="ur-PK",
         rtl=True,
         font_family="'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif",
+        fallback_tts=None
+    ),
+    SupportedLanguage.ROMAN_URDU: LanguageConfig(
+        code="ro",
+        name_en="Roman Urdu",
+        name_native="Roman Urdu",
+        locale="ro-PK",
+        tts_code="ur",
+        stt_code="ur-PK",
+        rtl=False,
+        font_family="'Inter', 'Segoe UI', sans-serif",
         fallback_tts=None
     ),
     SupportedLanguage.SINDHI: LanguageConfig(

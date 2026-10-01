@@ -100,21 +100,61 @@ class RecommendationEngine:
         return {"success": True, "response_text": response_text, "sources": evidence.get("citations", []), "evidence_count": evidence.get("evidence_count", 0), "narration_html": self.narration_service.get_autoplay_html(narration), "narration": narration, "translation_info": translation_info, "llm_provider": llm_result.get("provider", "unknown"), "is_demo": llm_result.get("is_demo", False), "input_type": "voice"}
 
     def process_image(self, image: Image.Image, question: str = "", input_type: str = "image") -> Dict:
+        """Analyze an image and preserve the vision result if downstream services fail."""
         lang_code = self.language_service.current_language.value
         vision_result = self.vision_service.analyze_image(image)
         if not vision_result.get("success"):
             return {"success": False, "error": vision_result.get("error", "Image analysis failed"), "warnings": vision_result.get("warnings", [])}
-        crop = vision_result.get("crop_detected", "")
+
+        crop = vision_result.get("crop_detected", "") or "Unknown"
         disease = vision_result.get("disease_detected", "")
         rag_query = f"{crop} {disease}".strip() if disease else crop
-        if question: rag_query = f"{rag_query} {question}"
-        evidence = self.rag_service.retrieve_evidence(rag_query, crop=crop.lower() if crop else None, top_k=3)
-        image_analysis = {"prediction": vision_result.get("prediction", "Unknown"), "confidence": vision_result.get("confidence", 0), "risk_level": vision_result.get("risk_level", "unknown")}
-        prompt = self.rag_service.build_rag_prompt(question or f"Analyze this {crop} image for disease/pest issues.", evidence=evidence, image_analysis=image_analysis, language=lang_code)
-        llm_result = self.llm_service.generate(prompt)
-        response_text, translation_info = self._localize_response(llm_result.get("text", "Unable to generate response."), lang_code)
+        if question:
+            rag_query = f"{rag_query} {question}"
+
+        evidence = {"citations": [], "evidence_count": 0}
+        llm_provider = "vision-only"
+        is_demo = bool(vision_result.get("is_demo", False))
+        try:
+            evidence = self.rag_service.retrieve_evidence(rag_query, crop=crop.lower() if crop else None, top_k=3)
+            image_analysis = {"prediction": vision_result.get("prediction", "Unknown"), "confidence": vision_result.get("confidence", 0), "risk_level": vision_result.get("risk_level", "unknown")}
+            prompt = self.rag_service.build_rag_prompt(
+                question or f"Analyze this {crop} image for disease/pest issues.",
+                evidence=evidence, image_analysis=image_analysis, language=lang_code
+            )
+            llm_result = self.llm_service.generate(prompt)
+            response_text, translation_info = self._localize_response(llm_result.get("text", ""), lang_code)
+            llm_provider = llm_result.get("provider", "unknown")
+            is_demo = is_demo or bool(llm_result.get("is_demo", False))
+        except Exception as exc:
+            logger.exception("Image recommendation layer failed; returning vision-only result")
+            response_text, translation_info = self._image_fallback_response(vision_result, lang_code, exc)
+
         narration = self.narration_service.prepare_narration(response_text)
-        return {"success": True, "response_text": response_text, "vision_result": vision_result, "sources": evidence.get("citations", []), "evidence_count": evidence.get("evidence_count", 0), "narration_html": self.narration_service.get_autoplay_html(narration), "narration": narration, "translation_info": translation_info, "llm_provider": llm_result.get("provider", "unknown"), "is_demo": llm_result.get("is_demo", False) or vision_result.get("is_demo", False), "input_type": input_type, "image_quality": vision_result.get("image_quality", {})}
+        return {
+            "success": True, "response_text": response_text, "vision_result": vision_result,
+            "sources": evidence.get("citations", []), "evidence_count": evidence.get("evidence_count", 0),
+            "narration_html": self.narration_service.get_autoplay_html(narration), "narration": narration,
+            "translation_info": translation_info, "llm_provider": llm_provider, "is_demo": is_demo,
+            "input_type": input_type, "image_quality": vision_result.get("image_quality", {})
+        }
+
+    def _image_fallback_response(self, vision_result: Dict, lang_code: str, exc: Exception) -> tuple:
+        """Localized safe answer when the RAG/LLM recommendation layer is unavailable."""
+        confidence = float(vision_result.get("confidence", 0) or 0)
+        prediction = vision_result.get("prediction") or "Unknown"
+        disease = vision_result.get("disease_detected")
+        reason = vision_result.get("reason") or ""
+        templates = {
+            "ur": f"تصویر کے AI تجزیے کے مطابق ممکنہ شناخت: {prediction}۔ اعتماد کی سطح {confidence:.0f} فیصد ہے۔ " + (f"ممکنہ بیماری یا مسئلہ: {disease}۔ " if disease else "بیماری کی واضح شناخت نہیں ہوئی۔ ") + (f"AI مشاہدہ: {reason}۔ " if reason else "") + "یہ ابتدائی AI تجزیہ ہے؛ بہتر نتیجے کے لیے متاثرہ پودے کی صاف اور قریب سے لی گئی تصویر استعمال کریں۔",
+            "sd": f"تصوير جي AI تجزيي مطابق ممڪن سڃاڻپ: {prediction}. اعتماد جي سطح {confidence:.0f} سيڪڙو آهي. " + (f"ممڪن بيماري يا مسئلو: {disease}. " if disease else "بيماري جي واضح سڃاڻپ نه ٿي سگهي. ") + (f"AI مشاهدو: {reason}. " if reason else "") + "هي ابتدائي AI تجزيو آهي؛ بهتر نتيجي لاءِ متاثر ٿيل ٻوٽي جي صاف ويجهي تصوير استعمال ڪريو.",
+            "pa": f"تصویر دے AI تجزیے مطابق ممکنہ شناخت: {prediction}۔ اعتماد دی سطح {confidence:.0f} فیصد اے۔ " + (f"ممکنہ بیماری یا مسئلہ: {disease}۔ " if disease else "بیماری دی واضح شناخت نہیں ہوئی۔ ") + (f"AI مشاہدہ: {reason}۔ " if reason else "") + "ایہہ ابتدائی AI تجزیہ اے؛ بہتر نتیجے لئی متاثرہ پودے دی صاف تے قریبوں تصویر ورتو۔",
+            "ps": f"د انځور د AI تحلیل له مخې احتمالي پېژندنه: {prediction}. د باور کچه {confidence:.0f} سلنه ده. " + (f"احتمالي ناروغي یا ستونزه: {disease}. " if disease else "د ناروغۍ روښانه پېژندنه ونه شوه. ") + (f"د AI مشاهده: {reason}. " if reason else "") + "دا لومړنی AI تحلیل دی؛ د ښه پایلې لپاره د اغېزمن بوټي روښانه نږدې انځور وکاروئ.",
+            "bal": f"عکسءِ AI تحلیلءِ حسابءَ ممکنہ شناخت: {prediction}. اعتمادءِ سطح {confidence:.0f} فیصد اَنت. " + (f"ممکنہ بیماری یا مسئلہ: {disease}. " if disease else "بیماریءَ واضح شناخت نہ بوتگ. ") + (f"AI مشاہدہ: {reason}. " if reason else "") + "اے ابتدائی AI تحلیل اَنت؛ بہتر نتیجےءِ وستی متاثرہ بوٹءِ صاف نزدیکین عکس استعمال کنیت.",
+            "en": f"AI image analysis suggests: {prediction}. Confidence is {confidence:.0f}%. " + (f"Possible disease/problem: {disease}. " if disease else "No clear disease was identified. ") + (f"AI observation: {reason}. " if reason else "") + "This is a preliminary AI analysis; use a clear close-up image for a better result."
+        }
+        text = templates.get(lang_code, templates["en"])
+        return text, {"translated_text": text, "is_fallback": True, "error": str(exc)}
 
     def get_explainability(self, result: Dict, question: str = "") -> Dict:
         factors = []

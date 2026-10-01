@@ -139,6 +139,8 @@ class RAGService:
             "ro": "Roman Urdu (Pakistan)",
             "sd": "Sindhi (سنڌي)",
             "pa": "Pakistani Punjabi in Shahmukhi script (پنجابی / شاہ مکھی)",
+            "pa-hi": "Punjabi in Gurmukhi script (ਪੰਜਾਬੀ / ਗੁਰਮੁਖੀ)",
+            "hi": "Hindi (हिन्दी)",
             "ps": "Pashto (پښتو)",
             "bal": "Balochi (بلوچی)",
             "en": "English",
@@ -147,6 +149,8 @@ class RAGService:
         section_headings = {
             "ur": "جواب، کیا کریں، احتیاط، قابلِ بھروسا ذرائع، یقین کی سطح",
             "ro": "Jawab, Kya karein, Ehtiyat, Moatabar zaraye, Yaqeen ki satah",
+            "pa-hi": "ਜਵਾਬ, ਕੀ ਕਰਨਾ ਹੈ, ਸਾਵਧਾਨੀ, ਭਰੋਸੇਯੋਗ ਸਰੋਤ, ਭਰੋਸੇ ਦਾ ਪੱਧਰ",
+            "hi": "जवाब, क्या करें, सावधानी, भरोसेमंद स्रोत, विश्वास स्तर",
             "sd": "جائزو / جواب، سفارشون، احتياطي تدبيرون، تصديق ٿيل ذريعا، اعتماد جي سطح",
             "pa": "جائزہ / جواب، سفارشاں، احتیاطی تدبیراں، تصدیق شدہ ذرائع، اعتماد دی سطح",
             "ps": "ارزونه / ځواب، سپارښتنې، احتیاطي تدابیر، تایید شوې سرچینې، د باور کچه",
@@ -162,7 +166,7 @@ class RAGService:
             f"Respond entirely in {lang_instruction}. Use the actual selected language and its natural vocabulary and script. "
             f"Every section heading must ALSO be written in the selected language; never use English section headings for Urdu, Sindhi, Punjabi, Pashto, or Balochi. "
             f"Use these section concepts in this order: {headings}. "
-            f"For Urdu, Sindhi, Punjabi, Pashto, and Balochi, do not use English or Hindi prose. For Roman Urdu, use natural Pakistani Roman Urdu in Latin letters only; do not use Urdu, Hindi, Devanagari, or Gurmukhi script. Translate or transliterate technical terms into the selected language. "
+            f"For Urdu, Sindhi, Punjabi, Pashto, and Balochi, do not use English or Hindi prose. For Punjabi Gurmukhi, use Punjabi in Gurmukhi script only. For Hindi, use natural Hindi in Devanagari script only. For Roman Urdu, use natural Pakistani Roman Urdu in Latin letters only; do not use Urdu, Hindi, Devanagari, or Gurmukhi script. Translate or transliterate technical terms into the selected language. "
             f"Include a clear answer, practical recommendations with dosage/timing where applicable, simple precautions, reliable sources, and a simple confidence statement. Return the final farmer answer as one smooth paragraph with no bullets, numbered lists, Markdown headings, or separate list lines. For Urdu, use modern everyday Pakistani Urdu throughout. For Roman Urdu, use natural everyday Pakistani Roman Urdu, not formal transliteration.\n"
         )
         return prompt

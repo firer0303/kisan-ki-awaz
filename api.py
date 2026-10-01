@@ -62,7 +62,7 @@ class MarketRequest(BaseModel):
 async def root():
     index_path = STATIC_DIR / "index.html"
     if index_path.exists():
-        return FileResponse(str(index_path))
+        return FileResponse(str(index_path), headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0", "Pragma": "no-cache", "Expires": "0"})
     return {"message": "Kisan Ki Awaz API is running. Visit /docs for API documentation."}
 
 @app.get("/api/health")

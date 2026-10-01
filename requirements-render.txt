@@ -1,7 +1,5 @@
 # ============================================================
-# Kisan Ki Awaz - Render Deployment Dependencies
-# Lightweight subset for FastAPI backend hosting.
-# Local development may still use requirements.txt with full ML packages.
+# Kisan Ki Awaz - Production Deployment Dependencies
 # ============================================================
 
 # --- API Server ---
@@ -26,6 +24,9 @@ sqlite-utils>=3.35
 
 # --- HTTP Client ---
 requests>=2.31.0
+
+# --- AI / LLM ---
+openai>=1.40.0
 
 # --- Speech Services ---
 gtts>=2.4.0

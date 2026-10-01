@@ -521,6 +521,16 @@
             return set[key] || UI_STRINGS['en'][key] || fallback;
         }
 
+        const RESULT_STRINGS = {
+            en:{detected:"Detection Result",confidence:"Confidence",risk:"Risk",crop:"Crop",disease:"Disease",answer:"Assessment / Answer",sources:"Verified Sources",narration:"Voice Narration",pause:"Pause",resume:"Resume",replay:"Replay",stop:"Stop"},
+            ur:{detected:"تشخیص کا نتیجہ",confidence:"اعتماد",risk:"خطرہ",crop:"فصل",disease:"بیماری",answer:"تشخیص / جواب",sources:"تصدیق شدہ ذرائع",narration:"آواز میں جواب",pause:"روکیں",resume:"جاری رکھیں",replay:"دوبارہ سنیں",stop:"بند کریں"},
+            sd:{detected:"تشخيص جو نتيجو",confidence:"اعتماد",risk:"خطرو",crop:"فصل",disease:"بيماري",answer:"جائزو / جواب",sources:"تصديق ٿيل ذريعا",narration:"آواز ۾ جواب",pause:"روڪيو",resume:"جاري رکو",replay:"ٻيهر ٻڌو",stop:"بند ڪريو"},
+            pa:{detected:"تشخیص دا نتیجہ",confidence:"اعتماد",risk:"خطرہ",crop:"فصل",disease:"بیماری",answer:"جائزہ / جواب",sources:"تصدیق شدہ ذرائع",narration:"آواز وچ جواب",pause:"روکو",resume:"جاری رکھو",replay:"دوبارہ سنو",stop:"بند کرو"},
+            ps:{detected:"د تشخیص پایله",confidence:"د باور کچه",risk:"خطر",crop:"کرنیزه",disease:"ناروغي",answer:"ارزونه / ځواب",sources:"تایید شوې سرچینې",narration:"غږیز ځواب",pause:"ودرول",resume:"بیا پیل",replay:"بیا واورئ",stop:"ودرول"},
+            bal:{detected:"تشخیصءِ نتیجہ",confidence:"اعتمادءِ سطح",risk:"خطر",crop:"کشت",disease:"بیماری",answer:"جائزگ / جواب",sources:"تصدیقءَ بوتگین سراجاݔں",narration:"آوازءَ جواب",pause:"داریت",resume:"جاری داریت",replay:"دوبارہءِ بوشیت",stop:"بند کنیت"}
+        };
+        function rt(key){ return (RESULT_STRINGS[currentLang]||RESULT_STRINGS.en)[key] || RESULT_STRINGS.en[key] || key; }
+
         function applyTranslations() {
             const keys = Object.keys(UI_STRINGS['en']);
             keys.forEach(key => {
@@ -785,49 +795,46 @@
         function renderResult(data) {
             const area = document.getElementById('resultArea');
             area.classList.remove('hidden');
-            if (!data.success) { area.innerHTML = `<div class="error-box">❌ ${data.error || 'Analysis failed'}</div>`; return; }
+            if (!data.success) { area.innerHTML = `<div class="error-box">❌ ${escapeHtml(data.error || 'Analysis failed')}</div>`; return; }
 
             let html = '';
             if (data.vision) {
                 const v = data.vision;
                 const confClass = v.confidence >= 70 ? 'high' : (v.confidence >= 50 ? 'medium' : 'low');
-                html += `<div class="card"><div class="card-title"><span class="material-icons-round">search</span>Detection Result</div>
-                    <p><strong>Detected:</strong> ${v.prediction || 'Unknown'}</p>
-                    <p style="margin-top:8px"><strong>Confidence:</strong> ${v.confidence}%</p>
+                html += `<div class="card"><div class="card-title"><span class="material-icons-round">search</span>${rt('detected')}</div>
+                    <p><strong>${rt('detected')}:</strong> ${escapeHtml(v.prediction || 'Unknown')}</p>
+                    <p style="margin-top:8px"><strong>${rt('confidence')}:</strong> ${v.confidence}%</p>
                     <div class="confidence-bar"><div class="confidence-fill ${confClass}" style="width:${Math.min(v.confidence,100)}%"></div></div>
-                    <p><strong>Risk:</strong> <span class="risk-badge risk-${v.risk_level}">${(v.risk_level || 'unknown').toUpperCase()}</span></p>
-                    <p><strong>Crop:</strong> ${v.crop_detected || 'N/A'} | <strong>Disease:</strong> ${v.disease_detected || 'None'}</p>`;
-                if (v.warnings) v.warnings.forEach(w => html += `<div class="warning-box">⚠️ ${w}</div>`);
+                    <p><strong>${rt('risk')}:</strong> <span class="risk-badge risk-${escapeHtml(v.risk_level || 'unknown')}">${escapeHtml((v.risk_level || 'unknown').toUpperCase())}</span></p>
+                    <p><strong>${rt('crop')}:</strong> ${escapeHtml(v.crop_detected || 'N/A')} | <strong>${rt('disease')}:</strong> ${escapeHtml(v.disease_detected || 'None')}</p>`;
+                if (v.warnings) v.warnings.forEach(w => html += `<div class="warning-box">⚠️ ${escapeHtml(w)}</div>`);
                 html += '</div>';
             }
 
             const isRtl = ['ur','sd','pa','ps','bal'].includes(currentLang);
-            html += `<div class="card"><div class="card-title"><span class="material-icons-round">lightbulb</span>${({ur:"تشخیص / جواب",sd:"جائزو / جواب",pa:"جائزہ / جواب",ps:"ارزونه / ځواب",bal:"جائزگ / جواب",en:"Assessment / Answer"}[currentLang] || "Assessment / Answer")}</div>
+            html += `<div class="card"><div class="card-title"><span class="material-icons-round">lightbulb</span>${rt('answer')}</div>
                 <div class="result-box${isRtl?' rtl':''}">${formatResponse(data.response_text || '')}</div></div>`;
 
             if (data.sources && data.sources.length) {
-                const sourceTitles = {en:'Verified Sources',ur:'تصدیق شدہ ذرائع',sd:'تصديق ٿيل ذريعا',pa:'تصدیق شدہ ذرائع',ps:'تایید شوې سرچینې',bal:'تصدیقءَ بوتگین سراجاݔں'};
-                html += '<div class="card"><div class="card-title"><span class="material-icons-round">verified</span>' + (sourceTitles[currentLang] || sourceTitles.en) + '</div>';
+                html += '<div class="card"><div class="card-title"><span class="material-icons-round">verified</span>' + rt('sources') + '</div>';
                 data.sources.forEach(s => {
-                    html += `<div class="source-card"><div class="org">🏛️ ${s.organization}</div>
-                        <div class="doc">📄 ${s.document_title}</div>
-                        <div class="meta">🔗 ${s.url || ''} | ${s.publication_date || ''}</div></div>`;
+                    html += `<div class="source-card"><div class="org">🏛️ ${escapeHtml(s.organization || '')}</div>
+                        <div class="doc">📄 ${escapeHtml(s.document_title || '')}</div>
+                        <div class="meta">🔗 ${escapeHtml(s.url || '')} | ${escapeHtml(s.publication_date || '')}</div></div>`;
                 });
                 html += '</div>';
             }
 
             if (data.narration && data.narration.audio_base64) {
                 const n = data.narration;
-                html += `<div class="narration-box"><div style="font-size:0.85rem;font-weight:700;color:var(--green-900);margin-bottom:10px;display:flex;align-items:center;gap:6px"><span class="material-icons-round">volume_up</span> Auto-Narration</div>
-                    ${n.is_fallback && n.fallback_notice ? `<div class="warning-box">${n.fallback_notice}</div>` : ''}
-                    <audio id="narrationAudio" controls autoplay style="width:100%">
-                        <source src="data:${n.mime_type};base64,${n.audio_base64}" type="${n.mime_type}">
-                    </audio>
+                html += `<div class="narration-box"><div style="font-size:0.85rem;font-weight:700;color:var(--green-900);margin-bottom:10px;display:flex;align-items:center;gap:6px"><span class="material-icons-round">volume_up</span> ${rt('narration')}</div>
+                    ${n.is_fallback && n.fallback_notice ? `<div class="warning-box">${escapeHtml(n.fallback_notice)}</div>` : ''}
+                    <audio id="narrationAudio" controls autoplay style="width:100%"><source src="data:${n.mime_type};base64,${n.audio_base64}" type="${n.mime_type}"></audio>
                     <div class="narration-controls">
-                        <button onclick="document.getElementById('narrationAudio').pause()"><span class="material-icons-round" style="font-size:16px;vertical-align:middle">pause</span> Pause</button>
-                        <button onclick="document.getElementById('narrationAudio').play()"><span class="material-icons-round" style="font-size:16px;vertical-align:middle">play_arrow</span> Resume</button>
-                        <button onclick="var a=document.getElementById('narrationAudio');a.currentTime=0;a.play()"><span class="material-icons-round" style="font-size:16px;vertical-align:middle">replay</span> Replay</button>
-                        <button onclick="var a=document.getElementById('narrationAudio');a.pause();a.currentTime=0"><span class="material-icons-round" style="font-size:16px;vertical-align:middle">stop</span> Stop</button>
+                        <button onclick="document.getElementById('narrationAudio').pause()">⏸ ${rt('pause')}</button>
+                        <button onclick="document.getElementById('narrationAudio').play()">▶ ${rt('resume')}</button>
+                        <button onclick="var a=document.getElementById('narrationAudio');a.currentTime=0;a.play()">🔄 ${rt('replay')}</button>
+                        <button onclick="var a=document.getElementById('narrationAudio');a.pause();a.currentTime=0">⏹ ${rt('stop')}</button>
                     </div></div>`;
             }
 

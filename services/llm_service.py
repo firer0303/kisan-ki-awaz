@@ -145,10 +145,10 @@ class LLMService:
             if start_ev >= 0 and end_ev >= 0:
                 evidence_text = prompt[start_ev + len("=== VERIFIED AGRICULTURAL EVIDENCE ==="):end_ev].strip()
 
-        source_line = ""
+        source_name = ""
         for line in evidence_text.split("\n"):
             if line.startswith("[Source:"):
-                source_line = line.strip("[]")
+                source_name = line[len("[Source:"):].strip().rstrip("]")
                 break
 
         content_lines = []
@@ -203,23 +203,78 @@ class LLMService:
 
         response_parts = [f"## {assessment}\n\n"]
         response_parts.append((intro if evidence_found else no_evidence) + "\n\n")
+
         if image_analysis:
-            response_parts.append(f"**{('تصویری تجزیہ' if language == 'ur' else 'Image Analysis' if language == 'en' else image_text.split(':')[0])}:** {image_text}\n\n")
+            if language == "ur":
+                image_label = "تصویری تجزیہ"
+                response_parts.append(
+                    f"**{image_label}:** ممکنہ شناخت {detected}، اعتماد {confidence} فیصد، خطرے کی سطح {risk}۔\n\n"
+                )
+            elif language == "sd":
+                response_parts.append(
+                    f"**تصويري جائزو:** ممڪن سڃاڻپ {detected}، اعتماد {confidence} سيڪڙو، خطري جي سطح {risk}.\n\n"
+                )
+            elif language == "pa":
+                response_parts.append(
+                    f"**تصویری جائزہ:** ممکنہ شناخت {detected}، اعتماد {confidence} فیصد، خطرے دی سطح {risk}۔\n\n"
+                )
+            elif language == "ps":
+                response_parts.append(
+                    f"**د انځور ارزونه:** احتمالي پېژندنه {detected}، د باور کچه {confidence} سلنه، د خطر کچه {risk}.\n\n"
+                )
+            elif language == "bal":
+                response_parts.append(
+                    f"**تصویر ءِ جائزگ:** ممکنہ شناخت {detected}، اعتمادءِ سطح {confidence} فیصد، خطرہ ءِ سطح {risk}.\n\n"
+                )
 
         if evidence_found:
             response_parts.append(f"## {recommendations}\n\n{rec_intro}\n\n")
+
             if content_lines:
-                full_content = " ".join(content_lines[:5])
-                sentences = [s.strip() for s in re.split(r"[.!?۔؟]", full_content) if len(s.strip()) > 10]
-                for sentence in sentences[:6]:
+                full_content = " ".join(content_lines[:12])
+                sentences = [
+                    s.strip()
+                    for s in re.split(r"[.!?۔؟]+", full_content)
+                    if len(s.strip()) > 10
+                ]
+                for sentence in sentences[:10]:
                     response_parts.append(f"- {sentence}\n")
                 response_parts.append("\n")
-            else:
-                response_parts.append(f"- {consult}\n\n")
 
-            response_parts.append(f"## {warnings}\n\n- {warning}\n- {consult}\n\n")
+            response_parts.append(f"## {warnings}\n\n")
+            response_parts.append(f"- {warning}\n")
+            response_parts.append(f"- {consult}\n\n")
+
+            detail_heading = {
+                "ur": "اہم معلومات",
+                "sd": "اهم معلومات",
+                "pa": "اہم معلومات",
+                "ps": "مهم معلومات",
+                "bal": "مهم معلومات",
+                "en": "Important Information",
+            }.get(language, "اہم معلومات")
+            response_parts.append(f"## {detail_heading}\n\n")
+            if content_lines:
+                for sentence in sentences[:8]:
+                    response_parts.append(f"- {sentence}\n")
+            else:
+                response_parts.append(f"- {consult}\n")
+            response_parts.append("\n")
+
             response_parts.append(f"## {sources}\n\n")
-            response_parts.append(f"- {source_line or source_default}\n\n")
+            source_label = {
+                "ur": "ماخذ",
+                "sd": "ذريعو",
+                "pa": "ماخذ",
+                "ps": "سرچینه",
+                "bal": "ماخذ",
+                "en": "Source",
+            }.get(language, "ماخذ")
+            if source_name:
+                response_parts.append(f"- {source_label}: {source_name}\n\n")
+            else:
+                response_parts.append(f"- {source_default}\n\n")
+
             response_parts.append(f"**{confidence_label}:** {confidence_high}\n")
         else:
             response_parts.append(f"## {recommendations}\n\n{consult}\n\n")
@@ -227,16 +282,8 @@ class LLMService:
 
         response_text = "".join(response_parts)
 
-        # The verified evidence itself is often stored in English. When the
-        # selected language is not English, translate those evidence bullets
-        # and the source line before returning the fallback response. This
-        # prevents English RAG content from leaking through when an LLM or
-        # primary translation provider is unavailable.
         if language != "en":
             try:
-                # Translate the complete fallback in one request. The previous
-                # line-by-line approach made many external translation calls and
-                # could exceed Railway/client request timeouts.
                 translator = TranslationService()
                 result = translator.translate(
                     response_text,

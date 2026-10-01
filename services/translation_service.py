@@ -108,21 +108,47 @@ class TranslationService:
 
         session = requests.Session()
         session.headers.update({"User-Agent": "KisanKiAwaz/1.0"})
-        resp = session.get(
-            "https://api.mymemory.translated.net/get",
-            params={"q": protected[:4500], "langpair": f"{source}|{target}"},
-            timeout=5,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        translated = (data.get("responseData") or {}).get("translatedText")
-        if not translated:
-            raise RuntimeError("MyMemory returned no translated text")
+        # MyMemory enforces a hard maximum of 500 characters per query.
+        # Split the protected response into small chunks so the complete result
+        # (including evidence, recommendations, warnings, and confidence) is
+        # translated without triggering "QUERY LENGTH LIMIT EXCEEDED".
+        chunks = []
+        remaining = protected
+        max_chars = 480
+        while remaining:
+            if len(remaining) <= max_chars:
+                chunks.append(remaining)
+                break
+
+            cut = remaining.rfind("\n", 0, max_chars)
+            if cut < 200:
+                cut = remaining.rfind(" ", 0, max_chars)
+            if cut < 1:
+                cut = max_chars
+
+            chunks.append(remaining[:cut])
+            remaining = remaining[cut:]
+        
+        translated_chunks = []
+        for chunk in chunks:
+            resp = session.get(
+                "https://api.mymemory.translated.net/get",
+                params={"q": chunk, "langpair": f"{source}|{target}"},
+                timeout=5,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            translated_chunk = (data.get("responseData") or {}).get("translatedText")
+            if not translated_chunk:
+                raise RuntimeError("MyMemory returned no translated text")
+            translated_chunks.append(translated_chunk)
+
+        translated = "".join(translated_chunks)
 
         # Punjabi in Kisan Ki Awaz means Pakistani Punjabi (Shahmukhi),
         # not Hindi/Devanagari. Some free translation providers can return
         # Hindi-script output for the generic "pa" target, so reject it and
-        # let the native Punjabi fallback generate the answer instead.
+        # allow the normal fallback path instead of showing Hindi.
         if target == "pa":
             devanagari_chars = sum(
                 1 for ch in translated

@@ -965,10 +965,7 @@
                 const saved = localStorage.getItem('kka_server_url');
                 if (saved) API = saved;
             } catch(e) {}
-        }
-
-        // ── Demo ──
-        async // ── Helpers ──
+        }        // ── Helpers ──
         function showSpinner(show, text) {
             const spinner = document.getElementById('spinner');
             if (text) document.getElementById('spinnerText').textContent = text;
@@ -985,6 +982,12 @@
         // ── Online/Offline detection ──
         window.addEventListener('online', () => updateConnStatus('online', 'Back online'));
         window.addEventListener('offline', () => updateConnStatus('offline', 'No internet connection'));
+
+        // Remove any legacy/demo navigation that may exist in cached or older markup.
+        document.querySelectorAll('.nav-item, a, button, [role="tab"]').forEach(el => {
+            const label = (el.textContent || '').trim().toLowerCase();
+            if (label.includes('judge demo mode') || label === 'demo mode' || label.includes('judge demo')) el.remove();
+        });
 
         // ── Start ──
         init();

@@ -67,7 +67,7 @@ class LLMService:
                 "provider": "openai",
                 "model": settings.llm.openai_model,
                 "is_demo": False,
-                "error": error or None,
+                "error": None,
             }
         except Exception as e:
             logger.error(f"OpenAI API error: {e}")

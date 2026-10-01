@@ -142,22 +142,24 @@ class TranslationService:
         return text
 
     def _validate_selected_language(self, translated: str, target_lang: str) -> None:
-        """Reject obvious English/Hindi leakage in non-English farmer output."""
+        """Reject clear language/script leakage without unnecessary retries."""
         import re
-
         if not translated or target_lang == "en":
             return
 
         cleaned = re.sub(r"https?://\S+", "", translated)
         cleaned = re.sub(r"__KISAN_[A-Z0-9_]+__", "", cleaned)
 
-        # Any remaining lowercase English word means the response is not fully
-        # localized. Official names/acronyms are normally uppercase and URLs
-        # were removed above.
-        leaked = re.findall(r"\b[a-z]{2,}\b", cleaned)
-        if leaked:
+        # Latin-script technical/proper names may legitimately remain, but a
+        # large amount of lowercase English means the translation failed.
+        latin_words = re.findall(r"\b[A-Za-z][A-Za-z'-]{2,}\b", cleaned)
+        lowercase_words = [w for w in latin_words if not w.isupper()]
+        allowed = {"ai", "fao", "pmd", "amis", "pbc"}
+        leaked = [w for w in lowercase_words if w.lower() not in allowed]
+
+        if len(leaked) >= 12:
             raise RuntimeError(
-                f"English text detected in {target_lang} translation: {', '.join(leaked[:6])}"
+                f"Significant English text detected in {target_lang} translation"
             )
 
         if target_lang == "pa":

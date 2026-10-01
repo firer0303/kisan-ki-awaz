@@ -160,56 +160,58 @@ class RecommendationEngine:
         return localized
 
     def _localize_vision_result(self, vision: Dict, lang_code: str) -> Dict:
-        """Translate all human-readable vision fields into the selected language."""
+        """Translate all human-readable vision fields with one request."""
         if lang_code == "en" or not isinstance(vision, dict):
             return dict(vision)
 
         localized = dict(vision)
-
-        # Short fixed labels/values are safer as native mappings.
-        fixed = {
-            "risk_level": {
-                "low": {"ur": "کم", "sd": "گهٽ", "pa": "گھٹ", "ps": "ټیټ", "bal": "کم"},
-                "medium": {"ur": "درمیانہ", "sd": "وچولو", "pa": "درمیانہ", "ps": "منځنی", "bal": "درمیان"},
-                "high": {"ur": "زیادہ", "sd": "وڌيڪ", "pa": "زیادہ", "ps": "لوړ", "bal": "زیادہ"},
-                "unknown": {"ur": "نامعلوم", "sd": "نامعلوم", "pa": "نامعلوم", "ps": "ناڅرګند", "bal": "نامعلوم"},
-            }
+        risk_map = {
+            "low": {"ur": "کم", "sd": "گهٽ", "pa": "گھٹ", "ps": "ټیټ", "bal": "کم"},
+            "medium": {"ur": "درمیانہ", "sd": "وچولو", "pa": "درمیانہ", "ps": "منځنی", "bal": "درمیان"},
+            "high": {"ur": "زیادہ", "sd": "وڌيڪ", "pa": "زیادہ", "ps": "لوړ", "bal": "زیادہ"},
+            "unknown": {"ur": "نامعلوم", "sd": "نامعلوم", "pa": "نامعلوم", "ps": "ناڅرګند", "bal": "نامعلوم"},
         }
         risk = str(localized.get("risk_level", "")).lower()
-        if risk in fixed["risk_level"]:
-            localized["risk_level"] = fixed["risk_level"][risk].get(lang_code, localized["risk_level"])
+        if risk in risk_map:
+            localized["risk_level"] = risk_map[risk].get(lang_code, localized["risk_level"])
 
-        text_fields = ["prediction", "crop_detected", "disease_detected", "reason"]
-        warning_fields = ["warnings"]
-
-        texts = []
-        for key in text_fields:
+        fields = []
+        for key in ("prediction", "crop_detected", "disease_detected", "reason"):
             value = localized.get(key)
-            if value and isinstance(value, str) and value.lower() not in {"unknown", "none", "n/a"}:
-                texts.append((key, value))
+            if isinstance(value, str) and value.strip() and value.lower() not in {"unknown", "none", "n/a"}:
+                fields.append((key, value))
 
         warnings = localized.get("warnings") or []
-        for index, warning in enumerate(warnings):
+        for idx, warning in enumerate(warnings):
             if isinstance(warning, str) and warning.strip():
-                texts.append((f"warning_{index}", warning))
+                fields.append((f"warning_{idx}", warning))
 
-        for key, value in texts:
-            try:
-                result = self.translation_service.translate(
-                    value, target_lang=lang_code, source_lang="en"
-                )
-                translated = result.get("translated_text")
-                if translated and not result.get("is_fallback"):
+        if not fields:
+            return localized
+
+        try:
+            marker_text = "\n".join(
+                f"__KISAN_VISION_{i}__ {value}" for i, (_, value) in enumerate(fields)
+            )
+            result = self.translation_service.translate(
+                marker_text, target_lang=lang_code, source_lang="en"
+            )
+            translated = result.get("translated_text", "")
+            if translated and not result.get("is_fallback"):
+                for i, (key, _) in enumerate(fields):
+                    marker = f"__KISAN_VISION_{i}__"
+                    if marker not in translated:
+                        continue
+                    value = translated.split(marker, 1)[1].split("__KISAN_VISION_", 1)[0].strip()
+                    if not value:
+                        continue
                     if key.startswith("warning_"):
-                        idx = int(key.split("_", 1)[1])
-                        warnings[idx] = translated
+                        warnings[int(key.split("_", 1)[1])] = value
                     else:
-                        localized[key] = translated
-            except Exception as exc:
-                logger.warning(f"Vision field localization failed for {key}: {exc}")
-
-        if warnings:
-            localized["warnings"] = warnings
+                        localized[key] = value
+                localized["warnings"] = warnings
+        except Exception as exc:
+            logger.warning(f"Vision field localization failed: {exc}")
 
         return localized
 

@@ -68,13 +68,61 @@ class TranslationService:
         except Exception as e:
             logger.warning(f"googletrans failed: {e}")
 
-        # Final fallback: return English with notice
+        # Last-resort public translation service. Translate line-by-line so
+        # Markdown headings, bullets, URLs and source formatting remain usable.
+        try:
+            return self._mymemory_translate(text, target_code, source_lang)
+        except Exception as e:
+            logger.warning(f"MyMemory translation failed: {e}")
+
         return {
             "translated_text": text,
             "source_lang": source_lang,
             "target_lang": target_lang,
             "is_fallback": True,
-            "error": f"Translation to {target_lang} not available. Showing English response.",
+            "error": f"Translation to {target_lang} is temporarily unavailable.",
+        }
+
+    def _mymemory_translate(self, text: str, target: str, source: str) -> Dict:
+        """Translate complete verified responses with MyMemory."""
+        import re
+        import requests
+
+        lines = text.splitlines()
+        translated_lines = []
+        for line in lines:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("http://") or stripped.startswith("https://"):
+                translated_lines.append(line)
+                continue
+            match = re.match(r"^(\s*(?:[-*]\s+|#{1,6}\s+|\*\*[^*]+\*\*:\s*)?)(.*)$", line)
+            prefix, body = match.groups() if match else ("", line)
+            if len(body.strip()) < 2:
+                translated_lines.append(line)
+                continue
+            chunks = [body[i:i+450] for i in range(0, len(body), 450)]
+            out = []
+            for chunk in chunks:
+                resp = requests.get(
+                    "https://api.mymemory.translated.net/get",
+                    params={"q": chunk, "langpair": f"{source}|{target}"},
+                    timeout=12,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                translated = (data.get("responseData") or {}).get("translatedText")
+                if not translated:
+                    raise RuntimeError("MyMemory returned no translated text")
+                out.append(translated)
+            translated_lines.append(prefix + " ".join(out))
+
+        result = "\n".join(translated_lines)
+        return {
+            "translated_text": result,
+            "source_lang": source,
+            "target_lang": target,
+            "is_fallback": False,
+            "error": None,
         }
 
     def _deep_translate(

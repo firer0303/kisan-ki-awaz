@@ -45,40 +45,40 @@ LANGUAGE_REGISTRY: Dict[SupportedLanguage, LanguageConfig] = {
         name_en="Urdu",
         name_native="اردو",
         locale="ur-PK",
-        tts_code="ur-PK",
+        tts_code="ur",
         stt_code="ur-PK",
         rtl=True,
         font_family="'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif",
-        fallback_tts="hi-IN",  # Hindi as closest fallback
+        fallback_tts=None
     ),
     SupportedLanguage.SINDHI: LanguageConfig(
         code="sd",
         name_en="Sindhi",
         name_native="سنڌي",
         locale="sd-PK",
-        tts_code="sd-PK",
+        tts_code="sd",
         stt_code="sd-PK",
         rtl=True,
         font_family="'Noto Nastaliq Urdu', 'Noto Sans Arabic', serif",
-        fallback_tts="ur-PK",  # Urdu as fallback
+        fallback_tts=None
     ),
     SupportedLanguage.PUNJABI: LanguageConfig(
         code="pa",
         name_en="Punjabi",
         name_native="پنجابی",
         locale="pa-PK",
-        tts_code="pa-PK",
-        stt_code="pa-PK",
+        tts_code="pa",
+        stt_code="pa-IN",
         rtl=True,  # Shahmukhi script used in Pakistan
         font_family="'Noto Nastaliq Urdu', serif",
-        fallback_tts="ur-PK",
+        fallback_tts=None
     ),
     SupportedLanguage.PASHTO: LanguageConfig(
         code="ps",
         name_en="Pashto",
         name_native="پښتو",
         locale="ps-AF",
-        tts_code="ps-AF",
+        tts_code="ps",
         stt_code="ps-AF",
         rtl=True,
         font_family="'Noto Sans Arabic', 'Noto Nastaliq Urdu', serif",
@@ -89,7 +89,7 @@ LANGUAGE_REGISTRY: Dict[SupportedLanguage, LanguageConfig] = {
         name_en="Balochi",
         name_native="بلوچی",
         locale="bal-PK",
-        tts_code="ur-PK",  # Balochi not natively supported by most TTS
+        tts_code="bal",
         stt_code="ur-PK",
         rtl=True,
         font_family="'Noto Nastaliq Urdu', serif",

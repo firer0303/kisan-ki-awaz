@@ -67,7 +67,17 @@ async def image(req: ImageAnswerRequest):
     except Exception as exc:
         text,translation=e._image_fallback_response(vision,req.language,exc)
         provider="answer-fallback"; demo=True
+
+    market_crop = e._detect_market_crop(query, evidence)
+    market = e.market_service.get_crop_prices(market_crop) if market_crop else {}
+    market_text = e._market_section(market, req.language)
+    if market_text:
+        text = text.rstrip() + "\n\n" + market_text
+
     narration=e.narration_service.prepare_narration(text)
-    return {"success":True,"response_text":text,"vision_result":vision,"sources":e._localize_result_metadata(evidence.get("citations",[]),req.language),
-            "evidence_count":evidence.get("evidence_count",0),"narration":narration,"translation_info":translation,
-            "llm_provider":provider,"is_demo":demo,"input_type":req.input_type}
+    return {"success":True,"response_text":text,"vision_result":vision,
+            "sources":e._localize_result_metadata(evidence.get("citations",[]),req.language),
+            "evidence_count":evidence.get("evidence_count",0),"market":market,
+            "narration":narration,"translation_info":translation,
+            "llm_provider":provider,"is_demo":demo or bool(market.get("is_demo",False)),
+            "input_type":req.input_type}

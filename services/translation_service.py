@@ -30,7 +30,9 @@ class TranslationService:
     def __init__(self):
         self._translator = None
         logger.info("Translation service initialized")
-\n    def _romanize_urdu(self, text: str) -> str:
+
+
+    def _romanize_urdu(self, text: str) -> str:
         """Convert Urdu-script text to readable Roman Urdu."""
         if not text or not text.strip():
             return text

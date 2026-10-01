@@ -37,7 +37,9 @@ SpeechRecognition>=3.10.0
 # --- Translation ---
 deep-translator>=1.11.0
 
-# --- Punjabi Shahmukhi support ---
+# --- Pakistani Urdu & Punjabi NLP ---
+urdu-nlp-tools>=0.1.2
+punjabi-nlp-shahmukhi>=0.1.1
 punjabi-nlp-shahmukhi>=0.1.1
 
 # --- Utilities ---

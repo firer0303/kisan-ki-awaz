@@ -16,7 +16,8 @@ class TranslationService:
 
     # Language code mapping for googletrans
     LANG_MAP = {
-        "ur": "ur",   # Urdu
+        "ur": "ur",   # Pakistani Urdu
+        "ro": "ur",   # Roman Urdu is generated from Urdu then romanized
         "sd": "sd",   # Sindhi (limited support)
         "pa": "pa",   # Punjabi
         "ps": "ps",   # Pashto
@@ -27,6 +28,22 @@ class TranslationService:
     def __init__(self):
         self._translator = None
         logger.info("Translation service initialized")
+\n    def _romanize_urdu(self, text: str) -> str:
+        """Convert Urdu-script text to readable Roman Urdu."""
+        if not text or not text.strip():
+            return text
+        try:
+            import uroman
+            romanizer = getattr(self, "_uroman", None)
+            if romanizer is None:
+                romanizer = uroman.Uroman()
+                self._uroman = romanizer
+            return romanizer.romanize_string(text, lcode="urd")
+        except Exception as exc:
+            logger.warning(f"Urdu romanization failed: {exc}")
+            # Keep the original text rather than silently switching language.
+            return text
+
 
     def _localize_technical_terms(self, text: str, target_lang: str) -> str:
         """Convert common technical/scientific terms into farmer-friendly local wording."""
@@ -230,6 +247,12 @@ class TranslationService:
         # Try deep-translator first (more reliable)
         try:
             result = self._deep_translate(text, target_code, source_lang)
+            if target_lang == "ro":
+                result["translated_text"] = self._romanize_urdu(result.get("translated_text", ""))
+            if target_lang == "ro":
+                result["translated_text"] = self._romanize_urdu(result.get("translated_text", ""))
+            if target_lang == "ro":
+                result["translated_text"] = self._romanize_urdu(result.get("translated_text", ""))
             result["translated_text"] = self._localize_technical_terms(result.get("translated_text", ""), target_lang)
             self._validate_selected_language(result.get("translated_text", ""), target_lang)
             return result

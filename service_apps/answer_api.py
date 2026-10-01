@@ -74,6 +74,8 @@ async def image(req: ImageAnswerRequest):
     if market_text:
         text = text.rstrip() + "\n\n" + market_text
 
+    text = e._to_single_paragraph(text)
+
     narration=e.narration_service.prepare_narration(text)
     return {"success":True,"response_text":text,"vision_result":vision,
             "sources":e._localize_result_metadata(evidence.get("citations",[]),req.language),

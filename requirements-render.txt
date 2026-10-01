@@ -37,6 +37,9 @@ SpeechRecognition>=3.10.0
 # --- Translation ---
 deep-translator>=1.11.0
 
+# --- Punjabi Shahmukhi support ---
+punjabi-nlp-shahmukhi>=0.1.1
+
 # --- Utilities ---
 python-dateutil>=2.8.2
 httpx>=0.27.0

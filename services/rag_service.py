@@ -134,20 +134,26 @@ class RAGService:
 
         # Build the final prompt
         language_names = {\n            "ur": "Urdu (اردو)",\n            "sd": "Sindhi (سنڌي)",\n            "pa": "Punjabi in Shahmukhi script (پنجابی)",\n            "ps": "Pashto (پښتو)",\n            "bal": "Balochi (بلوچی)",\n            "en": "English",\n        }\n        lang_instruction = language_names.get(language, "the farmer's selected language")
+        section_headings = {
+            "ur": "تشخیص / جواب، سفارشات، احتیاطی تدابیر، تصدیق شدہ ذرائع، اعتماد کی سطح",
+            "sd": "جائزو / جواب، سفارشون، احتياطي تدبيرون، تصديق ٿيل ذريعا، اعتماد جي سطح",
+            "pa": "جائزہ / جواب، سفارشاں، احتیاطی تدبیراں، تصدیق شدہ ذرائع، اعتماد دی سطح",
+            "ps": "ارزونه / ځواب، سپارښتنې، احتیاطي تدابیر، تایید شوې سرچینې، د باور کچه",
+            "bal": "جائزگ / جواب، سفارشاں، احتیاطی تدبیر، تصدیقءَ بوتگین سراجاݔں، اعتمادءِ سطح",
+            "en": "Assessment / Answer, Recommendations, Warnings / Precautions, Verified Sources, Confidence Level",
+        }
+        headings = section_headings.get(language, section_headings["en"])
         prompt = (
             f"{system_instructions}\n"
             f"{evidence_section}\n"
             f"{image_section}\n"
             f"Farmer's Question: {farmer_question}\n\n"
-            f"Respond entirely in {lang_instruction}. Use the actual selected language and its natural vocabulary and script. Do not translate the answer into Urdu, Hindi, or English unless the selected language is English or a technical term has no natural equivalent. "
-            f"with a clear, structured answer including:\n"
-            f"1. Brief assessment/answer\n"
-            f"2. Specific recommendations (with dosages/timing where applicable)\n"
-            f"3. Warnings or precautions\n"
-            f"4. Verified Sources section (list each source used)\n"
-            f"5. Confidence level of your recommendation\n"
+            f"Respond entirely in {lang_instruction}. Use the actual selected language and its natural vocabulary and script. "
+            f"Every section heading must ALSO be written in the selected language; never use English section headings for Urdu, Sindhi, Punjabi, Pashto, or Balochi. "
+            f"Use these section concepts in this order: {headings}. "
+            f"Do not translate the answer into Urdu, Hindi, or English unless the selected language is English or a technical term has no natural equivalent. "
+            f"Include a brief assessment/answer, specific recommendations with dosages/timing where applicable, warnings or precautions, verified sources, and confidence level.\n"
         )
-
         return prompt
 
     def get_statistics(self) -> Dict:

@@ -133,7 +133,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "هاريءَ جو آواز",
         "pa": "کسان دی اواز",
         "ps": "د بزگر آواز",
-        "bal": "کشانی آواز",
+        "bal": "کشانی آواز",\n        "ro": "Kisan Ki Awaz",
         "en": "Kisan Ki Awaz",
     },
     "app_subtitle": {
@@ -141,7 +141,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "پاڪستاني هارين لاءِ AI فارمنگ اسسٽنٽ",
         "pa": "پاکستانی کساناں لئی AI فارمنگ اسسٹنٹ",
         "ps": "د پاکستانی بزگرانو لپاره د AI کرهڼې مرستیال",
-        "bal": "پاکستانی کشاناںءِ تئ AI دراجی معاون",
+        "bal": "پاکستانی کشاناںءِ تئ AI دراجی معاون",\n        "ro": "Pakistan ke kisanon ke liye AI farming assistant",
         "en": "AI Farming Assistant for Pakistani Farmers",
     },
     "select_language": {
@@ -149,7 +149,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "پنھنجي ٻولي چونڊيو",
         "pa": "اپنی بولی چنو",
         "ps": "خپله ژبه وټاکئ",
-        "bal": "وتی زبانءَ برچینت کنیت",
+        "bal": "وتی زبانءَ برچینت کنیت",\n        "ro": "Apni zaban select karein",
         "en": "Select Your Language",
     },
     "voice_input": {
@@ -157,7 +157,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "آواز سان پڇو",
         "pa": "آواز نال پچھو",
         "ps": "د غږ له لارې وپوښتئ",
-        "bal": "آوازءَ گونءِ بپرسیت",
+        "bal": "آوازءَ گونءِ بپرسیت",\n        "ro": "Awaz se poochein",
         "en": "Ask by Voice",
     },
     "camera_input": {
@@ -165,7 +165,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "تصوير وٺو",
         "pa": "تصویر لوو",
         "ps": "انځور واخلئ",
-        "bal": "عکسءَ بگریت",
+        "bal": "عکسءَ بگریت",\n        "ro": "Tasveer lein",
         "en": "Take Picture",
     },
     "image_upload": {
@@ -173,7 +173,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "تصوير اپ لوڊ ڪريو",
         "pa": "تصویر اپ لوڈ کرو",
         "ps": "انځور پورته کړئ",
-        "bal": "عکسءَ آپلود کنیت",
+        "bal": "عکسءَ آپلود کنیت",\n        "ro": "Tasveer upload karein",
         "en": "Upload Image",
     },
     "analyzing": {
@@ -181,7 +181,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "تجزيو ٿي رهيو آهي...",
         "pa": "تجزیہ ہو رہیا اے...",
         "ps": "تحلیل روان دی...",
-        "bal": "تحلیلءَ بوتگ ان...",
+        "bal": "تحلیلءَ بوتگ ان...",\n        "ro": "Tajziya ho raha hai...",
         "en": "Analyzing...",
     },
     "verified_sources": {
@@ -189,7 +189,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "تصديق ٿيل ذريعا",
         "pa": "تصدیق شدہ ذرائع",
         "ps": "تایید شوي سرچینې",
-        "bal": "تصدیقءَ بوتگین سراجاݔں",
+        "bal": "تصدیقءَ بوتگین سراجاݔں",\n        "ro": "Moatabar zaraye",
         "en": "Verified Sources",
     },
     "confidence": {
@@ -197,7 +197,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "اعتماد جي سطح",
         "pa": "اعتماد دی سطح",
         "ps": "د باور کچه",
-        "bal": "اعتمادءِ سطح",
+        "bal": "اعتمادءِ سطح",\n        "ro": "Yaqeen ki satah",
         "en": "Confidence Level",
     },
     "risk_level": {
@@ -205,7 +205,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "خطري جي سطح",
         "pa": "خطرے دی سطح",
         "ps": "د خطر کچه",
-        "bal": "خطراءِ سطح",
+        "bal": "خطراءِ سطح",\n        "ro": "Khatre ki satah",
         "en": "Risk Level",
     },
     "recommendations": {
@@ -213,7 +213,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "سفارشون",
         "pa": "سفارشاں",
         "ps": "سپارښتنې",
-        "bal": "سفارشں",
+        "bal": "سفارشں",\n        "ro": "Kya karein",
         "en": "Recommendations",
     },
     "why_this": {
@@ -221,7 +221,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "هي سفارش ڇو؟",
         "pa": "ایہہ سفارش کیوں؟",
         "ps": "ولې دا سپارښتنه؟",
-        "bal": "اے سفارشءِ چیرا؟",
+        "bal": "اے سفارشءِ چیرا؟",\n        "ro": "Ye mashwara kyun?",
         "en": "Why this recommendation?",
     },
     "no_source": {
@@ -229,7 +229,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "ڪو به تصديق ٿيل ذريعو دستياب ناهي",
         "pa": "کوئی تصدیق شدہ ذریع دستیاب نہیں",
         "ps": "هیڅ تایید شوې سرچینه شتون نلري",
-        "bal": "هیچ تصدیقءَ بوتگین سراجاءِ دست کپءَ نیست",
+        "bal": "هیچ تصدیقءَ بوتگین سراجاءِ دست کپءَ نیست",\n        "ro": "Koi moatabar zariya dastiyab nahi",
         "en": "No verified source available",
     },
     "low_confidence_warning": {
@@ -237,7 +237,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "گھٽ اعتماد - مھرباني ڪري ماھر سان صلاح ڪريو",
         "pa": "گھٹ اعتماد - مہربانی کرکے ماہر نال صلاح کرو",
         "ps": "ټیټ باور - مهرباني وکړئ له پوه سره مشوره وکړئ",
-        "bal": "کم اعتماد - مھربانیءَ گونءِ ماھرءَ مشورت کنیت",
+        "bal": "کم اعتماد - مھربانیءَ گونءِ ماھرءَ مشورت کنیت",\n        "ro": "Kam yaqeen - meherbani karke maahir se mashwara karein",
         "en": "Low confidence - Please consult an expert",
     },
     "demo_mode": {
@@ -245,7 +245,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "ڊيمو موڊ",
         "pa": "ڈیمو موڈ",
         "ps": "ډیمو حالت",
-        "bal": "ڈیمو حالَت",
+        "bal": "ڈیمو حالَت",\n        "ro": "Demo mode",
         "en": "Demo Mode",
     },
     "pause": {
@@ -253,7 +253,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "روڪيو",
         "pa": "روکو",
         "ps": "ودرول",
-        "bal": "داریت",
+        "bal": "داریت",\n        "ro": "Rokein",
         "en": "Pause",
     },
     "resume": {
@@ -261,7 +261,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "جاري رکو",
         "pa": "جاری رکھو",
         "ps": "بیا پیل",
-        "bal": "جاری داریت",
+        "bal": "جاری داریت",\n        "ro": "Jari rakhein",
         "en": "Resume",
     },
     "replay": {
@@ -269,7 +269,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "ٻيهر ٻڌو",
         "pa": "دوبارہ سنو",
         "ps": "بیا واورئ",
-        "bal": "دوبارہءِ بوشیت",
+        "bal": "دوبارہءِ بوشیت",\n        "ro": "Dobara sunein",
         "en": "Replay",
     },
     "stop": {
@@ -277,7 +277,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "بند ڪريو",
         "pa": "بند کرو",
         "ps": "ودرول",
-        "bal": "بند کنیت",
+        "bal": "بند کنیت",\n        "ro": "Band karein",
         "en": "Stop",
     },
     "narration_fallback_notice": {
@@ -285,7 +285,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "آواز اردو ۾ پڙهي پئي وڃي (توھان جي ٻوليءَ ۾ دستياب ناھي)",
         "pa": "آواز اردو وچ پڑھی جا رہی اے (تہاڈی بولی وچ دستیاب نہیں)",
         "ps": "غږ په اردو لوستل کیږي (ستاسو په ژبه کې شتون نلري)",
-        "bal": "آواز اردوئیءَ وارت بوتگ اں (شمی زبانءَ دست کپءَ نیست)",
+        "bal": "آواز اردوئیءَ وارت بوتگ اں (شمی زبانءَ دست کپءَ نیست)",\n        "ro": "Awaz Urdu mein parhi ja rahi hai (aapki zaban mein dastiyab nahi)",
         "en": "Voice narration is in Urdu (not available in your language)",
     },
     "crop_analysis": {
@@ -293,7 +293,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "فصل جو تجزيو",
         "pa": "فصل دا تجزیہ",
         "ps": "د کرهڼې تحلیل",
-        "bal": "ہربوگی تحلیل",
+        "bal": "ہربوگی تحلیل",\n        "ro": "Fasal ka tajziya",
         "en": "Crop Analysis",
     },
     "disease_pest": {
@@ -301,7 +301,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "بيماري / جيت",
         "pa": "بیماری / کیڑے",
         "ps": "ناروغي / آفتونه",
-        "bal": "بیماریءِ / ہپَتءِ",
+        "bal": "بیماریءِ / ہپَتءِ",\n        "ro": "Bimari / keere",
         "en": "Disease / Pest",
     },
     "market_info": {
@@ -309,7 +309,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "منڊيءَ جي معلومات",
         "pa": "منڈی دی معلومات",
         "ps": "د بازار معلومات",
-        "bal": "بازارءِ مالومات",
+        "bal": "بازارءِ مالومات",\n        "ro": "Mandi ki maloomat",
         "en": "Market Information",
     },
     "weather_alerts": {
@@ -317,7 +317,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "موسم جي ڄاڻ",
         "pa": "موسم دی جانکاری",
         "ps": "د هوا معلومات",
-        "bal": "ھوَاءِ مالومات",
+        "bal": "ھوَاءِ مالومات",\n        "ro": "Mausam ki maloomat",
         "en": "Weather Alerts",
     },
     "history": {
@@ -325,7 +325,7 @@ UI_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "sd": "تاريخ",
         "pa": "تریخ",
         "ps": "تاریخ",
-        "bal": "تاریخ",
+        "bal": "تاریخ",\n        "ro": "Tareekh",
         "en": "History",
     },
 }

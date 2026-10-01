@@ -227,6 +227,38 @@ class LLMService:
 
         response_text = "".join(response_parts)
 
+        # The verified evidence itself is often stored in English. When the
+        # selected language is not English, translate those evidence bullets
+        # and the source line before returning the fallback response. This
+        # prevents English RAG content from leaking through when an LLM or
+        # primary translation provider is unavailable.
+        if language != "en":
+            try:
+                translator = TranslationService()
+                translated_parts = []
+                for line in response_text.splitlines():
+                    if not line.strip():
+                        translated_parts.append(line)
+                        continue
+                    # Keep Markdown structure while translating all readable text.
+                    match = re.match(r"^(\s*)(#{1,6}\s+|[-*]\s+|\d+\.\s+|\*\*[^*]+:\*\*\s*)?(.*)$", line)
+                    if not match:
+                        translated_parts.append(line)
+                        continue
+                    prefix = (match.group(1) or "") + (match.group(2) or "")
+                    body = match.group(3) or ""
+                    if not body.strip():
+                        translated_parts.append(line)
+                        continue
+                    result = translator.translate(body, target_lang=language, source_lang="en")
+                    if result.get("translated_text") and not result.get("is_fallback"):
+                        translated_parts.append(prefix + result["translated_text"])
+                    else:
+                        translated_parts.append(line)
+                response_text = "\n".join(translated_parts)
+            except Exception as exc:
+                logger.warning(f"Fallback evidence localization failed: {exc}")
+
         return {
             "text": response_text,
             "provider": "knowledge_base",

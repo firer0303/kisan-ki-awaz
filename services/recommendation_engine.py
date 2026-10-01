@@ -39,6 +39,27 @@ class RecommendationEngine:
     def session_id(self) -> str:
         return self._session_id
 
+    def _repair_punjabi_shahmukhi(self, text: str) -> str:
+        """Use the configured LLM to convert Punjabi/Hindi/Gurmukhi output to Pakistani Shahmukhi."""
+        if not text:
+            return text
+        prompt = (
+            "Convert the following farmer answer into Pakistani Punjabi written ONLY in Shahmukhi script. "
+            "Preserve every fact, recommendation, dosage, timing, number, crop name, disease name, source name, "
+            "and URL. Do not summarize or remove information. Do not use Hindi, Devanagari, or Gurmukhi. "
+            "Do not write English prose. Keep necessary scientific Latin names only when they cannot be translated. "
+            "Return one smooth paragraph with no headings or bullet points.\n\n"
+            f"Text to convert:\n{text}"
+        )
+        try:
+            result = self.llm_service.generate(prompt, max_tokens=2000, temperature=0.1)
+            repaired = (result.get("text") or "").strip()
+            if repaired and self.translation_service.is_valid_selected_language_output(repaired, "pa"):
+                return repaired
+        except Exception as exc:
+            logger.warning(f"Punjabi Shahmukhi repair failed: {exc}")
+        return ""
+
     def _localize_response(self, response_text: str, lang_code: str, fallback_prompt: str = "") -> tuple:
         """Always return formal output in the farmer's selected language.
 
@@ -54,9 +75,39 @@ class RecommendationEngine:
             translated = self.translation_service.translate(
                 response_text, target_lang=lang_code, source_lang="en"
             )
-            if translated.get("translated_text") and not translated.get("is_fallback"):
-                response_text = translated["translated_text"]
+            candidate = translated.get("translated_text", "")
+            valid = bool(candidate) and not translated.get("is_fallback")
+
+            # Translation services often return Indian Punjabi/Hindi in an
+            # Indic script. Pakistani Punjabi must be Shahmukhi.
+            if lang_code == "pa" and valid:
+                valid = self.translation_service.is_valid_selected_language_output(candidate, "pa")
+
+            if valid:
+                response_text = candidate
                 translation_info = translated
+            elif lang_code == "pa":
+                repaired = self._repair_punjabi_shahmukhi(response_text)
+                if repaired:
+                    response_text = repaired
+                    translation_info = {
+                        "translated_text": response_text,
+                        "source_lang": "en",
+                        "target_lang": "pa",
+                        "is_fallback": True,
+                        "error": translated.get("error") or "Punjabi script repaired by LLM",
+                    }
+                elif fallback_prompt:
+                    localized = self.llm_service._fallback_generate(fallback_prompt)
+                    if localized.get("text"):
+                        response_text = localized["text"]
+                        translation_info = {
+                            "translated_text": response_text,
+                            "source_lang": "en",
+                            "target_lang": lang_code,
+                            "is_fallback": True,
+                            "error": translated.get("error"),
+                        }
             elif fallback_prompt:
                 localized = self.llm_service._fallback_generate(fallback_prompt)
                 if localized.get("text"):
@@ -70,7 +121,18 @@ class RecommendationEngine:
                     }
         except Exception as exc:
             logger.warning(f"Selected-language translation failed: {exc}")
-            if fallback_prompt:
+            if lang_code == "pa":
+                repaired = self._repair_punjabi_shahmukhi(response_text)
+                if repaired:
+                    response_text = repaired
+                    translation_info = {
+                        "translated_text": response_text,
+                        "source_lang": "en",
+                        "target_lang": "pa",
+                        "is_fallback": True,
+                        "error": str(exc),
+                    }
+            elif fallback_prompt:
                 try:
                     localized = self.llm_service._fallback_generate(fallback_prompt)
                     if localized.get("text"):

@@ -353,11 +353,11 @@
         </div>
     </div>
 
-    <!-- Demo Page -->
+    <!-- Settings Page -->
     <div class="page" id="pageSettings">
         <div class="card">
             <div class="card-title"><span class="material-icons-round">dns</span>Server URL</div>
-            <p style="font-size:0.85rem;color:var(--gray-600);margin-bottom:10px">Enter your deployed backend URL. Default works for demo only.</p>
+            <p style="font-size:0.85rem;color:var(--gray-600);margin-bottom:10px">Enter your deployed backend URL. The production server is configured automatically.</p>
             <input type="url" id="serverUrlInput" class="kisan-select" style="margin-bottom:10px;" placeholder="https://your-server.com">
             <button class="send-btn" onclick="saveServerUrl()">
                 <span class="material-icons-round">save</span>
@@ -388,9 +388,6 @@
         </a>
         <a class="nav-item" onclick="showPage('pageHistory')" data-page="pageHistory">
             <span class="material-icons-round">history</span><span id="navHistory">History</span>
-        </a>
-        <a class="nav-item" onclick="showPage('pageDemo')" data-page="pageDemo">
-            <span class="material-icons-round">science</span><span id="navDemo">Demo</span>
         </a>
         <a class="nav-item" onclick="showPage('pageSettings')" data-page="pageSettings">
             <span class="material-icons-round">settings</span><span id="navSettings">Settings</span>

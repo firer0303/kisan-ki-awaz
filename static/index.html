@@ -176,8 +176,6 @@
         .source-card .meta { font-size:0.75rem; color:#1565C0; word-break:break-all; }
         .warning-box { background:var(--orange-light); border-left:4px solid var(--orange); border-radius:var(--radius-sm); padding:12px 14px; margin:10px 0; color:#7A4A00; font-size:0.9rem; }
         .error-box { background:var(--red-light); border-left:4px solid var(--red); border-radius:var(--radius-sm); padding:12px 14px; margin:10px 0; color:#B71C1C; font-size:0.9rem; }
-        .demo-banner { background:linear-gradient(135deg, #667eea, #764ba2); color:#fff; padding:10px 14px; border-radius:var(--radius); text-align:center; font-size:0.82rem; font-weight:500; }
-
         /* ── Narration ── */
         .narration-box { background:var(--green-50); border:1px solid var(--green-400); border-radius:var(--radius-lg); padding:16px; margin-top:14px; }
         .narration-box audio { width:100%; height:40px; border-radius:8px; }
@@ -356,28 +354,6 @@
     </div>
 
     <!-- Demo Page -->
-    <div class="page" id="pageDemo">
-        <div class="card">
-            <div class="card-title"><span class="material-icons-round">play_circle</span><span id="demoTitle">Judge Demo Mode</span></div>
-            <div class="demo-banner">Language → Input → AI → RAG → Narration</div>
-            <button class="send-btn" onclick="runDemo()" style="margin-top:14px">
-                <span class="material-icons-round">play_arrow</span>
-                <span id="demoBtn">Run Demo Scenario</span>
-            </button>
-            <div id="demoResult" style="margin-top:16px"></div>
-        </div>
-        <div class="card">
-            <div class="card-title"><span class="material-icons-round">insights</span><span id="metricsTitle">Impact Metrics</span> <small style="color:var(--gray-600); font-weight:400">(Demo)</small></div>
-            <div class="metric-grid" id="metricsGrid">
-                <div class="metric-card"><div class="metric-value" id="metricAnalyses">0</div><div class="metric-label" id="metricAnalysesLabel">Analyses</div></div>
-                <div class="metric-card"><div class="metric-value">6</div><div class="metric-label" id="metricLangsLabel">Languages</div></div>
-                <div class="metric-card"><div class="metric-value" id="metricSources">0</div><div class="metric-label" id="metricSourcesLabel">Sources</div></div>
-                <div class="metric-card"><div class="metric-value" id="metricCrops">0</div><div class="metric-label" id="metricCropsLabel">Crops</div></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Settings Page -->
     <div class="page" id="pageSettings">
         <div class="card">
             <div class="card-title"><span class="material-icons-round">dns</span>Server URL</div>
@@ -447,9 +423,9 @@
                 analyzeLabel: "Analyze Image", spinnerText: "Analyzing your request...",
                 marketTitle: "Market Intelligence", marketCropLabel: "Select Crop", marketBtn: "Get Prices",
                 weatherTitle: "Weather & Risk Alerts", weatherRegionLabel: "Select Region", weatherBtn: "Get Weather",
-                historyTitle: "Analysis History", demoTitle: "Judge Demo Mode", demoBtn: "Run Demo Scenario",
+                historyTitle: "Analysis History",
                 metricsTitle: "Impact Metrics", settingsTitle: "System Status", changeLangBtn: "Change Language",
-                navHome:"Home", navMarket:"Market", navWeather:"Weather", navHistory:"History", navDemo:"Demo", navSettings:"Settings",
+                navHome:"Home", navMarket:"Market", navWeather:"Weather", navHistory:"History", navSettings:"Settings",
                 qaVoice:"Voice Ask", qaCamera:"Camera", qaUpload:"Upload",
                 metricAnalysesLabel:"Analyses", metricLangsLabel:"Languages", metricSourcesLabel:"Sources", metricCropsLabel:"Crops",
                 noHistory:"No history yet.", connectionError:"Cannot connect to server. Please check your internet.",
@@ -464,9 +440,9 @@
                 analyzeLabel: "تصویر کا تجزیہ کریں", spinnerText: "آپ کی درخواست کا تجزیہ ہو رہا ہے...",
                 marketTitle: "مارکیٹ انٹیلیجنس", marketCropLabel: "فصل منتخب کریں", marketBtn: "قیمتیں حاصل کریں",
                 weatherTitle: "موسم اور خطرے کی الرٹ", weatherRegionLabel: "علاقہ منتخب کریں", weatherBtn: "موسم حاصل کریں",
-                historyTitle: "تجزیہ کی تاریخ", demoTitle: "جج ڈیمو موڈ", demoBtn: "ڈیمو سیناریو چلائیں",
+                historyTitle: "تجزیہ کی تاریخ",
                 metricsTitle: "اثر کے میٹرکس", settingsTitle: "سسٹم کی حیثیت", changeLangBtn: "زبان تبدیل کریں",
-                navHome:"ہوم", navMarket:"مارکیٹ", navWeather:"موسم", navHistory:"تاریخ", navDemo:"ڈیمو", navSettings:"ترتیبات",
+                navHome:"ہوم", navMarket:"مارکیٹ", navWeather:"موسم", navHistory:"تاریخ", navSettings:"ترتیبات",
                 qaVoice:"آواز سے پوچھیں", qaCamera:"کیمرہ", qaUpload:"اپ لوڈ",
                 metricAnalysesLabel:"تجزیے", metricLangsLabel:"زبانیں", metricSourcesLabel:"ذرائع", metricCropsLabel:"فصلیں",
                 noHistory:"ابھی تک کوئی تاریخ نہیں۔", connectionError:"سرور سے رابطہ نہیں ہو سکا۔ براہ کرم انٹرنیٹ چیک کریں۔",
@@ -481,9 +457,9 @@
                 analyzeLabel: "عڪس جو تجزيو ڪريو", spinnerText: "توهان جي درخواست جو تجزيو ٿي رهيو آهي...",
                 marketTitle: "مارڪيٽ انٽيليجنس", marketCropLabel: "فصل چونڊيو", marketBtn: "قيمتون حاصل ڪريو",
                 weatherTitle: "موسم ۽ خطري جي الرٽ", weatherRegionLabel: "علائقو چونڊيو", weatherBtn: "موسم حاصل ڪريو",
-                historyTitle: "تجزيو جي تاريخ", demoTitle: "جج ڊيمو موڊ", demoBtn: "ڊيمو سيناريو هلائيو",
+                historyTitle: "تجزيو جي تاريخ",
                 metricsTitle: "اثر جا پيمانا", settingsTitle: "سسٽم جي صورت", changeLangBtn: "ٻولي تبديل ڪريو",
-                navHome:"هوم", navMarket:"مارڪيٽ", navWeather:"موسم", navHistory:"تاريخ", navDemo:"ڊيمو", navSettings:"ترتيبون",
+                navHome:"هوم", navMarket:"مارڪيٽ", navWeather:"موسم", navHistory:"تاريخ", navSettings:"ترتيبون",
                 qaVoice:"آواز سان پڇو", qaCamera:"ڪيمرا", qaUpload:"اپ لوڊ",
                 metricAnalysesLabel:"تجزا", metricLangsLabel:"ٻوليون", metricSourcesLabel:"ذريعا", metricCropsLabel:"فصلون",
                 noHistory:"اڃان تائين ڪا تاريخ ناهي.", connectionError:"سرور سان رابطو نه ٿي سگهيو. مهرباني ڪري انٽرنيٽ چڪاس ڪريو.",
@@ -498,9 +474,9 @@
                 analyzeLabel: "تصویر دی جانچ کرو", spinnerText: "توہادی درخواست دی جانچ ہو رہی اے...",
                 marketTitle: "مارکیٹ انٹیلیجنس", marketCropLabel: "فصل چنو", marketBtn: "قیمتاں حاصل کرو",
                 weatherTitle: "موسم تے خطرے دی الرٹ", weatherRegionLabel: "علاقہ چنو", weatherBtn: "موسم حاصل کرو",
-                historyTitle: "جانچ دی تاریخ", demoTitle: "جج ڈیمو موڈ", demoBtn: "ڈیمو سیناریو چلاؤ",
+                historyTitle: "جانچ دی تاریخ",
                 metricsTitle: "اثر دے میٹرکس", settingsTitle: "سسٹم دی حالت", changeLangBtn: "زبان بدلو",
-                navHome:"ہوم", navMarket:"مارکیٹ", navWeather:"موسم", navHistory:"تاریخ", navDemo:"ڈیمو", navSettings:"ترتیبات",
+                navHome:"ہوم", navMarket:"مارکیٹ", navWeather:"موسم", navHistory:"تاریخ", navSettings:"ترتیبات",
                 qaVoice:"آواز نال پچھو", qaCamera:"کیمرہ", qaUpload:"اپ لوڈ",
                 metricAnalysesLabel:"جانچاں", metricLangsLabel:"زباناں", metricSourcesLabel:"ذرائع", metricCropsLabel:"فصلاں",
                 noHistory:"ہلے کوئی تاریخ نہیں۔", connectionError:"سرور نال رابطہ نہیں ہو سکیا۔ براہ کرم انٹرنیٹ چیک کرو۔",
@@ -515,9 +491,9 @@
                 analyzeLabel: "عکس تحلیل کړئ", spinnerText: "ستاسو غوښتنه تحلیلېږي...",
                 marketTitle: "د بازار استخبارات", marketCropLabel: "حاصل وټاکئ", marketBtn: "قیمتونه ترلاسه کړئ",
                 weatherTitle: " موسم او خطر خبرتیاوې", weatherRegionLabel: "سیمه وټاکئ", weatherBtn: "موسم ترلاسه کړئ",
-                historyTitle: "د تحلیل تاریخ", demoTitle: "د جج ډیمو حالت", demoBtn: "ډیمو سناریو پیل کړئ",
+                historyTitle: "د تحلیل تاریخ",
                 metricsTitle: "د اغیز متریکس", settingsTitle: "د سیسټم وضعیت", changeLangBtn: "ژبه بدل کړئ",
-                navHome:"کور", navMarket:"بازار", navWeather:"موسم", navHistory:"تاریخ", navDemo:"ډیمو", navSettings:"ترتیبات",
+                navHome:"کور", navMarket:"بازار", navWeather:"موسم", navHistory:"تاریخ", navSettings:"ترتیبات",
                 qaVoice:"د غږ سره پوښتنه", qaCamera:"کیمره", qaUpload:"پورته کول",
                 metricAnalysesLabel:"تحلیلونه", metricLangsLabel:"ژبې", metricSourcesLabel:"سرچینې", metricCropsLabel:"حاصلات",
                 noHistory:"تر اوسه هیڅ تاریخ نشته.", connectionError:"سرور سره نه شي نښلېدلی. مهرباني وکړئ خپل انټرنټ وګورئ.",
@@ -532,9 +508,9 @@
                 analyzeLabel: "عکسءَ تجزیہ کنیت", spinnerText: "تئی درخواستءِ تجزیہ کنگ بیّت...",
                 marketTitle: "بازارءِ اطلاعات", marketCropLabel: "کشت انتخاب کنیت", marketBtn: "قیمتاں گِر",
                 weatherTitle: "موسم ءُ خطرے ئلرٹ", weatherRegionLabel: "علاقہ انتخاب کنیت", weatherBtn: "موسم گِر",
-                historyTitle: "تجزیہءِ تاریخ", demoTitle: "جج ڈیمو موڈ", demoBtn: "ڈیمو منظرہ چل کنیت",
+                historyTitle: "تجزیہءِ تاریخ",
                 metricsTitle: "اثرءِ پیمانہء", settingsTitle: "سسٹمءِ حالت", changeLangBtn: "زبانءَ تبدیل کنیت",
-                navHome:"گھر", navMarket:"بازار", navWeather:"موسم", navHistory:"تاریخ", navDemo:"ڈیمو", navSettings:"ترتیبات",
+                navHome:"گھر", navMarket:"بازار", navWeather:"موسم", navHistory:"تاریخ", navSettings:"ترتیبات",
                 qaVoice:"آوازءَ سوال", qaCamera:"کیمرہ", qaUpload:"اپ لوڈ",
                 metricAnalysesLabel:"تجزیات", metricLangsLabel:"زباناں", metricSourcesLabel:"زرائع", metricCropsLabel:"کشتاں",
                 noHistory:"ھاتر تاریخ نہ بیت.", connectionError:"سرورءَ گوں رابطہ نہ بیت. ڈیوو交会 انٹرنیٹءَ چک کنیت.",
@@ -815,8 +791,6 @@
             if (!data.success) { area.innerHTML = `<div class="error-box">❌ ${data.error || 'Analysis failed'}</div>`; return; }
 
             let html = '';
-            if (data.is_demo) html += '<div class="demo-banner">🧪 DEMO MODE</div>';
-
             if (data.vision) {
                 const v = data.vision;
                 const confClass = v.confidence >= 70 ? 'high' : (v.confidence >= 50 ? 'medium' : 'low');
@@ -997,14 +971,7 @@
         }
 
         // ── Demo ──
-        async function runDemo() {
-            if (!currentLang) await selectLanguage('ur', 'اردو', true);
-            showPage('pageHome');
-            document.getElementById('questionInput').value = 'My wheat crop has orange-brown spots on leaves. What is the disease and how to treat it?';
-            await submitVoiceQuery();
-        }
-
-        // ── Helpers ──
+        async // ── Helpers ──
         function showSpinner(show, text) {
             const spinner = document.getElementById('spinner');
             if (text) document.getElementById('spinnerText').textContent = text;

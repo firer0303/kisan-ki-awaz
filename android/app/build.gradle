@@ -15,7 +15,7 @@ android {
         versionName "1.0.0"
 
         // API base URL - change this to your deployed server
-        buildConfigField "String", "API_BASE_URL", "\"https://bent-gradually-functioning-emphasis.trycloudflare.com\""
+        buildConfigField "String", "API_BASE_URL", "\"https://kisan-ki-awaz-api-production.up.railway.app\""
     }
 
     signingConfigs {

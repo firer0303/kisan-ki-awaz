@@ -415,9 +415,14 @@
         let selectedImageBase64 = null;
         let isOnline = true;
         let translations = {};
+        let lastInputWasVoice = false;
+        let lastResponseText = '';
 
         // Detect API base URL: use current origin if web, or Android bridge if in app
-        let API = window.location.origin;
+        let API = 'https://kisan-ki-awaz-api-production.up.railway.app';
+        if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+            API = window.location.origin;
+        }
         if (typeof AndroidBridge !== 'undefined' && AndroidBridge.getApiBaseUrl) {
             try { API = AndroidBridge.getApiBaseUrl(); } catch(e){}
         }
@@ -627,7 +632,7 @@
         }
 
         // ── Network helpers ──
-        function fetchWithTimeout(url, options={}, timeout=120000) {
+        function fetchWithTimeout(url, options={}, timeout=180000) {
             return Promise.race([
                 fetch(url, {...options, cache: 'no-store'}),
                 new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), timeout))
@@ -636,8 +641,9 @@
 
         async function apiPost(endpoint, body) {
             updateConnStatus('connecting', 'Sending...');
+            const apiBase = (API || 'https://kisan-ki-awaz-api-production.up.railway.app').replace(/\/$/, '');
             try {
-                const res = await fetchWithTimeout(`${API}${endpoint}`, {
+                const res = await fetchWithTimeout(`${apiBase}${endpoint}`, {
                     method: 'POST', headers: {'Content-Type':'application/json'},
                     body: JSON.stringify(body)
                 });
@@ -733,6 +739,7 @@
         function startVoiceInput() {
             const input = document.getElementById('questionInput');
             const btn = document.getElementById('voiceBtn');
+            lastInputWasVoice = true;
 
             // If running inside Android app, use native speech recognition
             if (typeof AndroidBridge !== 'undefined' && AndroidBridge.startSpeechRecognition) {
@@ -816,6 +823,29 @@
             reader.readAsDataURL(file);
         }
 
+        async function prepareImageForUpload(base64) {
+            return new Promise((resolve) => {
+                try {
+                    const img = new Image();
+                    img.onload = () => {
+                        const maxSide = 1600;
+                        const scale = Math.min(1, maxSide / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+                        const canvas = document.createElement('canvas');
+                        canvas.width = Math.max(1, Math.round((img.naturalWidth || 1) * scale));
+                        canvas.height = Math.max(1, Math.round((img.naturalHeight || 1) * scale));
+                        const ctx = canvas.getContext('2d', {alpha:false});
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        const compressed = canvas.toDataURL('image/jpeg', 0.82).split(',')[1];
+                        resolve(compressed || base64);
+                    };
+                    img.onerror = () => resolve(base64);
+                    img.src = 'data:image/*;base64,' + base64;
+                } catch (e) {
+                    resolve(base64);
+                }
+            });
+        }
+
         // Native camera injects this global
         window.setCapturedImage = function(base64) {
             selectedImageBase64 = base64;
@@ -841,8 +871,9 @@
             const question = document.getElementById('imageQuestion').value.trim();
             showSpinner(true, t('spinnerText'));
             try {
+                const mobileSafeImage = await prepareImageForUpload(selectedImageBase64);
                 const data = await apiPost('/api/query/image', {
-                    image_base64: selectedImageBase64,
+                    image_base64: mobileSafeImage,
                     question,
                     language: currentLang || 'en',
                     input_type: 'upload'
@@ -874,7 +905,14 @@
 
             const isRtl = ['ur','sd','pa','ps','bal'].includes(currentLang);
             html += `<div class="card"><div class="card-title"><span class="material-icons-round">lightbulb</span>${rt('answer')}</div>
-                <div class="result-box${isRtl?' rtl':''}">${formatResponse(data.response_text || '')}</div></div>`;
+                <div class="result-box${isRtl?' rtl':''}">${formatResponse(data.response_text || '')}</div>`;
+            if (typeof AndroidBridge !== 'undefined' && AndroidBridge.speak) {
+                html += `<div class="narration-controls" style="margin-top:12px">
+                    <button onclick="speakCurrentResponse()">🔊 Speak Answer</button>
+                    <button onclick="stopCurrentSpeech()">⏹ Stop Voice</button>
+                </div>`;
+            }
+            html += '</div>';
 
             if (data.sources && data.sources.length) {
                 html += '<div class="card"><div class="card-title"><span class="material-icons-round">verified</span>' + rt('sources') + '</div>';
@@ -899,8 +937,27 @@
                     </div></div>`;
             }
 
+            lastResponseText = String(data.response_text || '');
             area.innerHTML = html;
             area.scrollIntoView({behavior:'smooth'});
+            if (lastInputWasVoice && lastResponseText && typeof AndroidBridge !== 'undefined' && AndroidBridge.speak) {
+                setTimeout(() => speakCurrentResponse(), 350);
+            }
+            lastInputWasVoice = false;
+        }
+
+        function speakCurrentResponse() {
+            if (!lastResponseText) return;
+            if (typeof AndroidBridge !== 'undefined' && AndroidBridge.speak) {
+                try { AndroidBridge.speak(lastResponseText, currentLang || 'en'); }
+                catch (e) { console.error('Native TTS failed', e); }
+            }
+        }
+
+        function stopCurrentSpeech() {
+            if (typeof AndroidBridge !== 'undefined' && AndroidBridge.stopSpeaking) {
+                try { AndroidBridge.stopSpeaking(); } catch (e) {}
+            }
         }
 
         function renderError(message) {

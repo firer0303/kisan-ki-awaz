@@ -6,7 +6,8 @@ app=FastAPI(title="Kisan Ki Awaz AI Vision",version="1.0.0")
 vision=VisionService()
 @app.get("/health")
 def health():
-    return {"status":"healthy","service":"ai-vision","is_demo":vision._is_demo}
+    model_name = getattr(vision.model, "MODEL_ID", type(vision.model).__name__)
+    return {"status":"healthy","service":"ai-vision","is_demo":vision._is_demo,"model":model_name,"classes":len(vision.model.get_class_labels())}
 @app.post("/analyze")
 def analyze(payload:dict):
     try:

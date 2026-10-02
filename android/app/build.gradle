@@ -5,25 +5,34 @@ plugins {
 
 android {
     namespace 'com.kisanKiAwaz.app'
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.kisanKiAwaz.app"
         minSdk 26
-        targetSdk 34
+        targetSdk 36
         versionCode 1
-        versionName "1.0.0"
+        versionName "1.1.0"
 
         // API base URL - change this to your deployed server
         buildConfigField "String", "API_BASE_URL", "\"https://kisan-ki-awaz-api-production.up.railway.app\""
     }
 
+    // Play Store upload signing is provided by the release workflow.
+    // No private signing key is stored in the repository.
+    def playKeystoreFile = System.getenv("ANDROID_KEYSTORE_FILE")
+    def playKeystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+    def playKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
+    def playKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+
     signingConfigs {
         release {
-            storeFile file("kisan-release.keystore")
-            storePassword "kisan1234"
-            keyAlias "kisanrelease"
-            keyPassword "kisan1234"
+            if (playKeystoreFile && playKeystorePassword && playKeyAlias && playKeyPassword) {
+                storeFile file(playKeystoreFile)
+                storePassword playKeystorePassword
+                keyAlias playKeyAlias
+                keyPassword playKeyPassword
+            }
         }
     }
 
@@ -32,7 +41,7 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
         }
         debug {
             debuggable true

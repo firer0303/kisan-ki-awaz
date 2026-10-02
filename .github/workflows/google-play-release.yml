@@ -1,0 +1,123 @@
+name: Kisan Ki Awaz - Google Play Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  play-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install Android 16 SDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;35.0.0"
+
+      - name: Prepare Play upload signing key
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p android/signing
+          if [ -n "${KEYSTORE_B64:-}" ] && [ -n "${KEYSTORE_PASSWORD:-}" ] && [ -n "${KEY_ALIAS:-}" ] && [ -n "${KEY_PASSWORD:-}" ]; then
+            echo "$KEYSTORE_B64" | base64 --decode > android/signing/play-upload.keystore
+            printf '%s' "$KEYSTORE_PASSWORD" > android/signing/store_password.txt
+            printf '%s' "$KEY_ALIAS" > android/signing/alias.txt
+            printf '%s' "$KEY_PASSWORD" > android/signing/key_password.txt
+            echo "PLAY_KEY_SOURCE=github-secret" >> "$GITHUB_ENV"
+          else
+            STORE_PASS="$(openssl rand -hex 24)"
+            KEY_PASS="$(openssl rand -hex 24)"
+            keytool -genkeypair -v \
+              -keystore android/signing/play-upload.keystore \
+              -storepass "$STORE_PASS" \
+              -keypass "$KEY_PASS" \
+              -alias kisanupload \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Kisan Ki Awaz, OU=Kisan Ki Awaz, O=Kisan Ki Awaz, L=Pakistan, ST=Punjab, C=PK"
+            printf '%s' "$STORE_PASS" > android/signing/store_password.txt
+            printf '%s' "kisanupload" > android/signing/alias.txt
+            printf '%s' "$KEY_PASS" > android/signing/key_password.txt
+            echo "PLAY_KEY_SOURCE=generated-bootstrap" >> "$GITHUB_ENV"
+          fi
+          echo "ANDROID_KEYSTORE_FILE=$GITHUB_WORKSPACE/android/signing/play-upload.keystore" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_PASSWORD=$(cat android/signing/store_password.txt)" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_ALIAS=$(cat android/signing/alias.txt)" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_PASSWORD=$(cat android/signing/key_password.txt)" >> "$GITHUB_ENV"
+          keytool -list -v \
+            -keystore android/signing/play-upload.keystore \
+            -storepass "$(cat android/signing/store_password.txt)" \
+            -alias "$(cat android/signing/alias.txt)" > android/signing/certificate.txt
+          grep -m1 "SHA256:" android/signing/certificate.txt || true
+
+      - name: Build signed Play bundle and APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew clean bundleRelease assembleRelease --stacktrace
+
+      - name: Prepare bootstrap signing package
+        if: env.PLAY_KEY_SOURCE == 'generated-bootstrap'
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "Kisan Ki Awaz - Play upload key";
+            echo;
+            echo "KEEP THIS KEYSTORE AND PASSWORDS PRIVATE.";
+            echo "Upload key alias: $(cat android/signing/alias.txt)";
+            echo "Keystore password: $(cat android/signing/store_password.txt)";
+            echo "Key password: $(cat android/signing/key_password.txt)";
+            echo;
+            grep -m1 "SHA256:" android/signing/certificate.txt || true;
+            echo;
+            echo "For future GitHub builds, add repository secrets:";
+            echo "ANDROID_KEYSTORE_BASE64 = base64 of play-upload.keystore";
+            echo "ANDROID_KEYSTORE_PASSWORD = keystore password";
+            echo "ANDROID_KEY_ALIAS = alias";
+            echo "ANDROID_KEY_PASSWORD = key password";
+          } > android/signing/PLAY_UPLOAD_KEY_SETUP.txt
+
+      - name: Upload Play Store bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: KisanKiAwaz-PlayStore-v1.1.0
+          path: |
+            android/app/build/outputs/bundle/release/app-release.aab
+            android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload bootstrap signing package
+        if: env.PLAY_KEY_SOURCE == 'generated-bootstrap'
+        uses: actions/upload-artifact@v4
+        with:
+          name: KisanKiAwaz-Play-Upload-Key-PRIVATE
+          path: |
+            android/signing/play-upload.keystore
+            android/signing/PLAY_UPLOAD_KEY_SETUP.txt
+          if-no-files-found: error
+          retention-days: 30

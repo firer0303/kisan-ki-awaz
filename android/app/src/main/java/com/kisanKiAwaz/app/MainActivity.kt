@@ -39,6 +39,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private lateinit var webView: WebView
     private var tts: TextToSpeech? = null
+    private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
+    private var pendingSpeechLanguage: String = "en"
 
     // API base URL - injected from BuildConfig (Gradle buildConfigField)
     private val apiBaseUrl: String by lazy { BuildConfig.API_BASE_URL }
@@ -47,7 +49,13 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private val imagePickerLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { handleImageUri(it) }
+        val callback = fileChooserCallback
+        fileChooserCallback = null
+        if (callback != null) {
+            callback.onReceiveValue(uri?.let { arrayOf(it) })
+        } else {
+            uri?.let { handleImageUri(it) }
+        }
     }
 
     private val cameraLauncher = registerForActivityResult(
@@ -129,7 +137,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             builtInZoomControls = false
             displayZoomControls = false
             cacheMode = WebSettings.LOAD_DEFAULT
-            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+            userAgentString = userAgentString + " KisanKiAwazAndroid/1.1"
         }
 
         // Enable debugging in debug builds
@@ -141,10 +150,20 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         // Chrome client for file inputs / permissions
         webView.webChromeClient = object : WebChromeClient() {
             override fun onPermissionRequest(request: PermissionRequest?) {
-                request?.grant(request.resources)
+                request?.deny()
+            }
+
+            override fun onShowFileChooser(
+                view: WebView?,
+                filePathCallback: ValueCallback<Array<Uri>>?,
+                fileChooserParams: FileChooserParams?
+            ): Boolean {
+                this@MainActivity.fileChooserCallback?.onReceiveValue(null)
+                this@MainActivity.fileChooserCallback = filePathCallback
+                imagePickerLauncher.launch("image/*")
+                return true
             }
         }
-
         // Handle errors with user-friendly fallback
         webView.webViewClient = object : WebViewClient() {
             override fun onReceivedError(
@@ -194,17 +213,21 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private fun speakText(text: String, langCode: String) {
         val locale = when (langCode) {
-            "ur" -> Locale("ur", "PK")
-            "sd" -> Locale("ur", "PK")  // Fallback: Sindhi -> Urdu
-            "pa" -> Locale("ur", "PK")  // Fallback: Punjabi -> Urdu
-            "ps" -> Locale("ur", "PK")  // Fallback: Pashto -> Urdu
-            "bal" -> Locale("ur", "PK") // Fallback: Balochi -> Urdu
-            else -> Locale.ENGLISH
+            "ur", "ro" -> Locale("ur", "PK")
+            "pa" -> Locale("pa", "PK")
+            "pa-hi", "hi" -> Locale("hi", "IN")
+            "sd" -> Locale("sd", "PK")
+            "ps" -> Locale("ps", "PK")
+            "bal" -> Locale("bal", "PK")
+            else -> Locale.US
         }
-        tts?.setLanguage(locale)
-        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "narration_${System.currentTimeMillis()}")
+        val status = tts?.setLanguage(locale)
+        if (status == TextToSpeech.LANG_MISSING_DATA || status == TextToSpeech.LANG_NOT_SUPPORTED) {
+            tts?.setLanguage(Locale.US)
+            Toast.makeText(this, "Selected language voice is not installed; using available voice.", Toast.LENGTH_SHORT).show()
+        }
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "narration_" + System.currentTimeMillis())
     }
-
     // ──────────────────────────────────────────────────────────
     // Image Handling
     // ──────────────────────────────────────────────────────────
@@ -273,7 +296,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
             REQUEST_AUDIO -> {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(this, "Permission granted. Tap voice button again.", Toast.LENGTH_SHORT).show()
+                    startSpeechRecognition(pendingSpeechLanguage)
                 } else {
                     Toast.makeText(this, "Microphone permission is required for voice input", Toast.LENGTH_SHORT).show()
                 }
@@ -307,6 +330,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         @JavascriptInterface
         fun startSpeechRecognition(langCode: String) {
+            pendingSpeechLanguage = langCode
             if (checkAndRequestPermission(Manifest.permission.RECORD_AUDIO, REQUEST_AUDIO)) {
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -336,15 +360,15 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private fun getSpeechLocale(langCode: String): String {
         return when (langCode) {
-            "ur" -> "ur-PK"
-            "sd" -> "ur-PK"   // Android STT has limited Sindhi; fallback to Urdu
-            "pa" -> "pa-IN"
-            "ps" -> "ps-AF"
-            "bal" -> "ur-PK"  // Fallback to Urdu for Balochi
+            "ur", "ro" -> "ur-PK"
+            "pa" -> "pa-PK"
+            "pa-hi", "hi" -> "hi-IN"
+            "sd" -> "sd-PK"
+            "ps" -> "ps-PK"
+            "bal" -> "bal-PK"
             else -> "en-US"
         }
     }
-
     private fun escapeJsString(input: String): String {
         return input
             .replace("\\", "\\\\")

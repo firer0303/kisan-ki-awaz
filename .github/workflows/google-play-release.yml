@@ -51,13 +51,7 @@ jobs:
           else
             STORE_PASS="$(openssl rand -hex 24)"
             KEY_PASS="$(openssl rand -hex 24)"
-            keytool -genkeypair -v \
-              -keystore android/signing/play-upload.keystore \
-              -storepass "$STORE_PASS" \
-              -keypass "$KEY_PASS" \
-              -alias kisanupload \
-              -keyalg RSA -keysize 2048 -validity 10000 \
-              -dname "CN=Kisan Ki Awaz, OU=Kisan Ki Awaz, O=Kisan Ki Awaz, L=Pakistan, ST=Punjab, C=PK"
+            keytool -genkeypair -v               -keystore android/signing/play-upload.keystore               -storetype JKS               -storepass "$STORE_PASS"               -keypass "$KEY_PASS"               -alias kisanupload               -keyalg RSA -keysize 2048 -validity 10000               -dname "CN=Kisan Ki Awaz, OU=Kisan Ki Awaz, O=Kisan Ki Awaz, L=Pakistan, ST=Punjab, C=PK"
             printf '%s' "$STORE_PASS" > android/signing/store_password.txt
             printf '%s' "kisanupload" > android/signing/alias.txt
             printf '%s' "$KEY_PASS" > android/signing/key_password.txt
@@ -67,10 +61,7 @@ jobs:
           echo "ANDROID_KEYSTORE_PASSWORD=$(cat android/signing/store_password.txt)" >> "$GITHUB_ENV"
           echo "ANDROID_KEY_ALIAS=$(cat android/signing/alias.txt)" >> "$GITHUB_ENV"
           echo "ANDROID_KEY_PASSWORD=$(cat android/signing/key_password.txt)" >> "$GITHUB_ENV"
-          keytool -list -v \
-            -keystore android/signing/play-upload.keystore \
-            -storepass "$(cat android/signing/store_password.txt)" \
-            -alias "$(cat android/signing/alias.txt)" > android/signing/certificate.txt
+          keytool -list -v             -keystore android/signing/play-upload.keystore             -storepass "$(cat android/signing/store_password.txt)"             -alias "$(cat android/signing/alias.txt)" > android/signing/certificate.txt
           grep -m1 "SHA256:" android/signing/certificate.txt || true
 
       - name: Build signed Play bundle and APK

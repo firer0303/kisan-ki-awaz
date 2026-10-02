@@ -296,7 +296,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
             REQUEST_AUDIO -> {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    startSpeechRecognition(pendingSpeechLanguage)
+                    launchSpeechRecognition(pendingSpeechLanguage)
                 } else {
                     Toast.makeText(this, "Microphone permission is required for voice input", Toast.LENGTH_SHORT).show()
                 }
@@ -356,6 +356,15 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         @JavascriptInterface
         fun isRunningInApp(): Boolean = true
+    }
+
+    private fun launchSpeechRecognition(langCode: String) {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, getSpeechLocale(langCode))
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak your farming question...")
+        }
+        runOnUiThread { speechLauncher.launch(intent) }
     }
 
     private fun getSpeechLocale(langCode: String): String {

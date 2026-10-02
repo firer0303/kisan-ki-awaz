@@ -1,7 +1,8 @@
 FROM python:3.11-slim
 WORKDIR /app
 COPY requirements-vision.txt .
-RUN pip install --no-cache-dir -r requirements-vision.txt
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch torchvision && \
+    pip install --no-cache-dir -r requirements-vision.txt
 COPY . .
 EXPOSE 8080
 CMD ["sh", "-c", "uvicorn service_apps.vision_api:app --host 0.0.0.0 --port ${PORT:-8080}"]

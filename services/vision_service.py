@@ -5,7 +5,12 @@ from loguru import logger
 from PIL import Image
 
 from config import settings
-from models.vision_model import DemoVisionModel, OpenAIVisionModel, VisionModelInterface
+from models.vision_model import (
+    DemoVisionModel,
+    LocalPlantDiseaseModel,
+    OpenAIVisionModel,
+    VisionModelInterface,
+)
 
 
 class VisionService:
@@ -18,7 +23,13 @@ class VisionService:
         elif settings.llm.openai_api_key:
             self.model = OpenAIVisionModel()
         else:
-            self.model = DemoVisionModel()
+            try:
+                self.model = LocalPlantDiseaseModel()
+                if getattr(self.model, "load_error", None):
+                    raise RuntimeError(self.model.load_error)
+            except Exception as exc:
+                logger.error(f"Local plant disease model unavailable: {exc}")
+                self.model = DemoVisionModel()
         self._is_demo = isinstance(self.model, DemoVisionModel)
         logger.info(f"Vision service initialized: {type(self.model).__name__}")
 
@@ -74,7 +85,16 @@ class VisionService:
         if result.get("uncertain"):
             warnings.append("The image does not provide enough visual evidence for a reliable disease identification.")
         if self._is_demo:
-            warnings.append("No real vision model is configured; this is a fallback analysis. Configure OPENAI_API_KEY for real image analysis.")
+            warnings.append(
+                "No trained image model is available, so no disease has been confirmed. "
+                "This result should not be used as a diagnosis."
+            )
+        elif getattr(self.model, "MODEL_ID", ""):
+            warnings.append(
+                "The image model was trained on PlantVillage leaf images. "
+                "Field photos and crops outside its 38 trained classes may be misclassified; "
+                "confirm uncertain results with an agricultural expert."
+            )
         quality = result.get("image_quality", {})
         if quality.get("is_blurry"):
             warnings.append("Image appears blurry. A clearer close-up image would improve accuracy.")
@@ -95,5 +115,6 @@ class VisionService:
     def get_available_models(self) -> list:
         return [
             {"name": "openai-vision", "description": "OpenAI multimodal crop/disease image analysis"},
-            {"name": "demo", "description": "Local fallback analysis when no vision API is configured"},
+            {"name": "plantvillage-mobilenetv2", "description": "Real local 38-class PlantVillage MobileNetV2 screening model"},
+            {"name": "demo", "description": "Safe no-diagnosis fallback when the trained model is unavailable"},
         ]

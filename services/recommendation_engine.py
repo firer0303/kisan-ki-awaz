@@ -171,6 +171,16 @@ class RecommendationEngine:
                 "Warnings": "احتیاطي تدابیر", "Warnings / Precautions": "احتیاطي تدابیر",
                 "Verified Sources": "تایید شوې سرچینې", "Confidence Level": "د باور کچه",
             },
+            "pa-hi": {
+                "Assessment / Answer": "ਜਵਾਬ", "Recommendations": "ਕੀ ਕਰਨਾ ਹੈ",
+                "Warnings": "ਸਾਵਧਾਨੀ", "Warnings / Precautions": "ਸਾਵਧਾਨੀ",
+                "Verified Sources": "ਭਰੋਸੇਯੋਗ ਸਰੋਤ", "Confidence Level": "ਭਰੋਸੇ ਦਾ ਪੱਧਰ",
+            },
+            "hi": {
+                "Assessment / Answer": "जवाब", "Recommendations": "क्या करें",
+                "Warnings": "सावधानी", "Warnings / Precautions": "सावधानी",
+                "Verified Sources": "भरोसेमंद स्रोत", "Confidence Level": "विश्वास स्तर",
+            },
             "bal": {
                 "Assessment / Answer": "جائزگ / جواب", "Recommendations": "سفارشاں",
                 "Warnings": "احتیاطی تدبیر", "Warnings / Precautions": "احتیاطی تدبیر",
@@ -423,9 +433,9 @@ class RecommendationEngine:
             llm_result.get("localized")
             and llm_result.get("language") == lang_code
         )
-        if already_localized and lang_code == "pa":
+        if already_localized:
             already_localized = self.translation_service.is_valid_selected_language_output(
-                raw_response, "pa"
+                raw_response, lang_code
             )
 
         if already_localized:
@@ -491,9 +501,27 @@ class RecommendationEngine:
                 evidence=evidence, image_analysis=image_analysis, language=lang_code
             )
             llm_result = self.llm_service.generate(prompt)
-            response_text, translation_info = self._localize_response(
-                llm_result.get("text", ""), lang_code, fallback_prompt=prompt
+            raw_image_response = llm_result.get("text", "")
+            image_already_localized = bool(
+                llm_result.get("localized")
+                and llm_result.get("language") == lang_code
             )
+            if image_already_localized:
+                image_already_localized = self.translation_service.is_valid_selected_language_output(
+                    raw_image_response, lang_code
+                )
+            if image_already_localized:
+                response_text = raw_image_response
+                translation_info = {
+                    "translated_text": response_text,
+                    "source_lang": "en",
+                    "target_lang": lang_code,
+                    "is_fallback": False,
+                }
+            else:
+                response_text, translation_info = self._localize_response(
+                    raw_image_response, lang_code, fallback_prompt=prompt
+                )
             localized_sources = self._localize_result_metadata(evidence.get("citations", []), lang_code)
             llm_provider = llm_result.get("provider", "unknown")
             is_demo = is_demo or bool(llm_result.get("is_demo", False))

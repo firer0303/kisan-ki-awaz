@@ -66,9 +66,9 @@ async def image(req: ImageAnswerRequest):
         already_localized = bool(
             llm.get("localized") and llm.get("language") == req.language
         )
-        if already_localized and req.language == "pa":
+        if already_localized:
             already_localized = e.translation_service.is_valid_selected_language_output(
-                raw, "pa"
+                raw, req.language
             )
 
         if already_localized:

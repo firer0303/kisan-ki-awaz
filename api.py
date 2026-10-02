@@ -114,6 +114,7 @@ async def process_voice_query(req: VoiceQueryRequest):
         raise HTTPException(500, "AI response could not be generated. Please try again.") from exc
 
 async def _run_image(engine_obj, image: Image.Image, question: str, input_type: str):
+    image = image.convert("RGB")
     try:
         return _format_result(engine_obj.process_image(image, question, input_type))
     except Exception as exc:
@@ -131,6 +132,7 @@ async def process_image_query(req: ImageAnalysisRequest):
         image_bytes = base64.b64decode(raw, validate=True)
         img = Image.open(io.BytesIO(image_bytes))
         img.load()
+        img = img.convert("RGB")
     except Exception as exc:
         raise HTTPException(400, "Invalid image data. Please upload a valid JPG or PNG image.") from exc
     language_service.set_language(lang_enum)
@@ -141,7 +143,7 @@ async def process_image_query(req: ImageAnalysisRequest):
         img.save(buf, format="JPEG")
         encoded = base64.b64encode(buf.getvalue()).decode("ascii")
         try:
-            async with httpx.AsyncClient(timeout=120) as client:
+            async with httpx.AsyncClient(timeout=180) as client:
                 vr = await client.post(f"{VISION_SERVICE_URL}/analyze", json={"image_base64": encoded})
                 vr.raise_for_status()
                 vision = vr.json()
@@ -165,6 +167,7 @@ async def process_image_upload(file: UploadFile = File(...), question: str = For
             raise ValueError("empty")
         img = Image.open(io.BytesIO(contents))
         img.load()
+        img = img.convert("RGB")
     except Exception as exc:
         raise HTTPException(400, "Invalid image file. Please upload a valid JPG or PNG image.") from exc
     language_service.set_language(lang_enum)

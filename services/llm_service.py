@@ -228,6 +228,10 @@ class LLMService:
                 parts.append(f"تصويري جائزي مطابق ممڪن سڃاڻپ {detected} آهي، اعتماد {confidence} سيڪڙو ۽ خطري جي سطح {risk} آهي.")
             elif language == "pa":
                 parts.append(f"تصویری جائزے مطابق ممکنہ شناخت {detected} اے، اعتماد {confidence} فیصد تے خطرے دی سطح {risk} اے۔")
+            elif language == "hi":
+                parts.append(f"तस्वीर के अनुसार संभावित पहचान {detected} है, विश्वास {confidence} प्रतिशत और जोखिम स्तर {risk} है।")
+            elif language == "pa-hi":
+                parts.append(f"ਤਸਵੀਰ ਦੇ ਵਿਸ਼ਲੇਸ਼ਣ ਮੁਤਾਬਕ ਸੰਭਾਵੀ ਪਛਾਣ {detected} ਹੈ, ਭਰੋਸਾ {confidence} ਫੀਸਦੀ ਅਤੇ ਖਤਰੇ ਦਾ ਪੱਧਰ {risk} ਹੈ।")
             elif language == "ps":
                 parts.append(f"د انځور د ارزونې له مخې احتمالي پېژندنه {detected} ده، د باور کچه {confidence} سلنه او د خطر کچه {risk} ده.")
             elif language == "bal":
@@ -252,6 +256,7 @@ class LLMService:
             parts.append(consult)
             source_label = {
                 "ur": "ماخذ", "sd": "ذريعو", "pa": "ماخذ",
+                "pa-hi": "ਸਰੋਤ", "hi": "स्रोत",
                 "ps": "سرچینه", "bal": "ماخذ", "en": "Source",
             }.get(language, "ماخذ")
             parts.append(f"{source_label}: {source_name}۔" if source_name else f"{source_default}۔")
@@ -261,20 +266,9 @@ class LLMService:
             parts.append(f"{confidence_label}: {confidence_unable}۔")
 
         response_text = re.sub(r"\s+", " ", " ".join(p.strip() for p in parts if p and p.strip())).strip()
-        localized = language in {"en", "ro"}
-
-        if language != "en":
-            try:
-                translator = TranslationService()
-                result = translator.translate(response_text, target_lang=language, source_lang="en")
-                if result.get("translated_text") and not result.get("is_fallback"):
-                    response_text = result["translated_text"]
-                    localized = True
-                else:
-                    logger.warning(f"Fallback evidence localization unavailable: {result.get('error')}")
-            except Exception as exc:
-                localized = False
-                logger.warning(f"Fallback evidence localization failed: {exc}")
+        # This fallback is generated directly in the selected language.
+        # Do not translate it again; doing so can corrupt the language/script.
+        localized = True
 
         return {
             "text": response_text,

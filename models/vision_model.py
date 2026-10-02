@@ -6,9 +6,10 @@ and a safe local fallback.
 """
 import base64
 import json
-import random
 from abc import ABC, abstractmethod
 from typing import Dict, List
+
+import os
 
 import numpy as np
 from PIL import Image
@@ -111,43 +112,223 @@ uncertain=true, disease_detected=null, confidence<=35 and explain why in reason.
         return list(CROP_DISEASE_LABELS)
 
 
+class LocalPlantDiseaseModel(VisionModelInterface):
+    """Real local 38-class PlantVillage MobileNetV2 classifier."""
+    MODEL_ID = os.getenv(
+        "PLANT_DISEASE_MODEL_ID",
+        "Daksh159/plant-disease-mobilenetv2",
+    )
+    MODEL_FILENAME = os.getenv(
+        "PLANT_DISEASE_MODEL_FILE",
+        "mobilenetv2_plant.pth",
+    )
+
+    # Standard PlantVillage 38-class label order used by the checkpoint.
+    LABELS = [
+        "Apple___Apple_scab",
+        "Apple___Black_rot",
+        "Apple___Cedar_apple_rust",
+        "Apple___healthy",
+        "Blueberry___healthy",
+        "Cherry___Powdery_mildew",
+        "Cherry___healthy",
+        "Corn_(maize)___Cercospora_leaf_spot_Gray_leaf_spot",
+        "Corn_(maize)___Common_rust_",
+        "Corn_(maize)___Northern_Leaf_Blight",
+        "Corn_(maize)___healthy",
+        "Grape___Black_rot",
+        "Grape___Esca_(Black_Measles)",
+        "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+        "Grape___healthy",
+        "Orange___Haunglongbing_(Citrus_greening)",
+        "Peach___Bacterial_spot",
+        "Peach___healthy",
+        "Pepper,_bell___Bacterial_spot",
+        "Pepper,_bell___healthy",
+        "Potato___Early_blight",
+        "Potato___Late_blight",
+        "Potato___healthy",
+        "Raspberry___healthy",
+        "Soybean___healthy",
+        "Squash___Powdery_mildew",
+        "Strawberry___Leaf_scorch",
+        "Strawberry___healthy",
+        "Tomato___Bacterial_spot",
+        "Tomato___Early_blight",
+        "Tomato___Late_blight",
+        "Tomato___Leaf_Mold",
+        "Tomato___Septoria_leaf_spot",
+        "Tomato___Spider_mites_Two-spotted_spider_mite",
+        "Tomato___Target_Spot",
+        "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+        "Tomato___Tomato_mosaic_virus",
+        "Tomato___healthy",
+    ]
+
+    def __init__(self):
+        self.model = None
+        self.transform = None
+        self.device = "cpu"
+        self.load_error = None
+        self._load()
+
+    def _load(self):
+        try:
+            import torch
+            import torch.nn as nn
+            from torchvision import models, transforms
+            from huggingface_hub import hf_hub_download
+
+            model_path = hf_hub_download(
+                repo_id=self.MODEL_ID,
+                filename=self.MODEL_FILENAME,
+                token=os.getenv("HUGGINGFACE_TOKEN") or None,
+            )
+
+            model = models.mobilenet_v2(weights=None)
+            in_features = model.classifier[1].in_features
+            model.classifier[1] = nn.Sequential(
+                nn.Dropout(0.2),
+                nn.Linear(in_features, len(self.LABELS)),
+            )
+
+            checkpoint = torch.load(model_path, map_location="cpu", weights_only=False)
+            if isinstance(checkpoint, dict):
+                state = (
+                    checkpoint.get("state_dict")
+                    or checkpoint.get("model_state_dict")
+                    or checkpoint
+                )
+            else:
+                state = checkpoint.state_dict()
+
+            # Handle common training wrappers such as "module." or "model.".
+            clean_state = {}
+            for key, value in state.items():
+                clean_key = str(key)
+                for prefix in ("module.", "model."):
+                    if clean_key.startswith(prefix):
+                        clean_key = clean_key[len(prefix):]
+                clean_state[clean_key] = value
+
+            missing, unexpected = model.load_state_dict(clean_state, strict=False)
+            if missing:
+                raise RuntimeError(
+                    f"Plant disease checkpoint is incomplete; missing {len(missing)} weights"
+                )
+
+            model.eval()
+            self.model = model
+            self.transform = transforms.Compose([
+                transforms.Resize((224, 224)),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    [0.485, 0.456, 0.406],
+                    [0.229, 0.224, 0.225],
+                ),
+            ])
+            logger.info(
+                f"Loaded real plant disease model {self.MODEL_ID}; "
+                f"unexpected checkpoint keys={len(unexpected)}"
+            )
+        except Exception as exc:
+            self.load_error = str(exc)
+            logger.exception("Real plant disease model could not be loaded")
+
+    @staticmethod
+    def _split_label(label: str) -> Dict:
+        parts = label.split("___", 1)
+        crop = parts[0].replace("_(maize)", "").replace("_", " ").strip() if parts else "Unknown"
+        disease = parts[1].replace("_", " ").strip() if len(parts) > 1 else "Unknown"
+        healthy = disease.lower() == "healthy"
+        if healthy:
+            disease = None
+        return {
+            "crop": crop,
+            "disease": disease,
+            "risk": "low" if healthy else "medium",
+        }
+
+    def predict(self, image: Image.Image) -> Dict:
+        if self.model is None or self.transform is None:
+            raise RuntimeError(
+                "Real plant disease model is unavailable: "
+                + (self.load_error or "unknown loading error")
+            )
+
+        import torch
+
+        image = image.convert("RGB")
+        x = self.transform(image).unsqueeze(0)
+        with torch.inference_mode():
+            logits = self.model(x)
+            probs = torch.softmax(logits, dim=1)[0]
+            top_probs, top_idx = torch.topk(probs, k=min(3, len(self.LABELS)))
+
+        top_predictions = []
+        for probability, index in zip(top_probs.tolist(), top_idx.tolist()):
+            label = self.LABELS[int(index)]
+            top_predictions.append((label, round(float(probability) * 100, 1)))
+
+        label = top_predictions[0][0]
+        confidence = top_predictions[0][1]
+        meta = self._split_label(label)
+
+        # Closed-set models can be confidently wrong on field photos or
+        # unsupported crops. Reject weak predictions instead of inventing a diagnosis.
+        uncertain = confidence < 70.0
+        disease = meta["disease"]
+        prediction = f'{meta["crop"]} - {disease or "Healthy"}'
+        reason = (
+            f"Local MobileNetV2 PlantVillage model top result: {prediction}."
+            f" Top confidence {confidence:.1f}%."
+        )
+        if uncertain:
+            disease = None
+            prediction = f'{meta["crop"]} - Uncertain'
+            reason += " Confidence is below the safe diagnosis threshold, so no disease is confirmed."
+
+        return {
+            "prediction": prediction,
+            "confidence": confidence,
+            "all_predictions": top_predictions,
+            "risk_level": "unknown" if uncertain else meta["risk"],
+            "crop_detected": meta["crop"] if confidence >= 50 else "Unknown",
+            "disease_detected": disease,
+            "reason": reason,
+            "uncertain": uncertain,
+            "is_demo": False,
+            "model_name": self.MODEL_ID,
+            "model_classes": len(self.LABELS),
+        }
+
+    def get_class_labels(self) -> List[str]:
+        return list(self.LABELS)
+
+
 class DemoVisionModel(VisionModelInterface):
-    """Safe local fallback when no real vision API key is configured."""
+    """Legacy compatibility fallback with NO random disease claims."""
 
     def __init__(self):
         self.labels = CROP_DISEASE_LABELS
         self.metadata = _CLASS_METADATA
 
     def predict(self, image: Image.Image) -> Dict:
-        if image is None:
-            return self._empty_result("No image provided")
-        img_small = image.convert("RGB").resize((64, 64))
-        pixels = np.array(img_small)
-        avg_r, avg_g, avg_b = pixels[:, :, 0].mean(), pixels[:, :, 1].mean(), pixels[:, :, 2].mean()
-        green_ratio = avg_g / (avg_r + avg_g + avg_b + 1)
-        brown_indicator = avg_r > 120 and avg_g < 100 and avg_b < 80
-        img_hash = hash(pixels.tobytes()[:100]) % 1000
-        random.seed(img_hash)
-        if green_ratio > 0.38 and not brown_indicator:
-            top_label = random.choice([l for l in self.labels if "Healthy" in l])
-            confidence = random.uniform(65, 92)
-        elif brown_indicator:
-            candidates = [l for l in self.labels if "Healthy" not in l and any(k in l for k in ["Rust", "Blight", "Rot", "Spot"])]
-            top_label, confidence = random.choice(candidates), random.uniform(45, 78)
-        else:
-            top_label, confidence = random.choice([l for l in self.labels if "Healthy" not in l]), random.uniform(40, 75)
-        meta = self.metadata[top_label]
         return {
-            "prediction": top_label, "confidence": round(confidence, 1),
-            "all_predictions": [(top_label, round(confidence, 1))],
-            "risk_level": meta["risk_level"], "crop_detected": meta["crop"],
-            "disease_detected": meta["disease"], "is_demo": True,
+            "prediction": "Unable to confirm disease",
+            "confidence": 0.0,
+            "all_predictions": [],
+            "risk_level": "unknown",
+            "crop_detected": "Unknown",
+            "disease_detected": None,
+            "reason": (
+                "No real vision model is configured. The image cannot be safely "
+                "identified without a trained plant-disease model."
+            ),
+            "uncertain": True,
+            "is_demo": True,
         }
-
-    def _empty_result(self, reason: str) -> Dict:
-        return {"prediction": "Unable to analyze", "confidence": 0, "all_predictions": [],
-                "risk_level": "unknown", "crop_detected": "Unknown", "disease_detected": None,
-                "error": reason, "is_demo": True}
 
     def get_class_labels(self) -> List[str]:
         return list(self.labels)
+

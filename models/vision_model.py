@@ -114,123 +114,78 @@ uncertain=true, disease_detected=null, confidence<=35 and explain why in reason.
 
 
 class LocalPlantDiseaseModel(VisionModelInterface):
-    """Real local 38-class PlantVillage MobileNetV2 classifier."""
+    """Real local PlantVillage classifier using ONNX Runtime."""
     MODEL_ID = os.getenv(
         "PLANT_DISEASE_MODEL_ID",
-        "Daksh159/plant-disease-mobilenetv2",
+        "BiernyVR/crop-disease-classifier",
     )
     MODEL_FILENAME = os.getenv(
         "PLANT_DISEASE_MODEL_FILE",
-        "mobilenetv2_plant.pth",
+        "efficientnet_v2_s_best.onnx",
+    )
+    MODEL_DATA_FILENAME = os.getenv(
+        "PLANT_DISEASE_MODEL_DATA_FILE",
+        "efficientnet_v2_s_best.onnx.data",
+    )
+    CLASSES_FILENAME = os.getenv(
+        "PLANT_DISEASE_CLASSES_FILE",
+        "classes.json",
     )
 
-    # Standard PlantVillage 38-class label order used by the checkpoint.
-    LABELS = [
-        "Apple___Apple_scab",
-        "Apple___Black_rot",
-        "Apple___Cedar_apple_rust",
-        "Apple___healthy",
-        "Blueberry___healthy",
-        "Cherry___Powdery_mildew",
-        "Cherry___healthy",
-        "Corn_(maize)___Cercospora_leaf_spot_Gray_leaf_spot",
-        "Corn_(maize)___Common_rust_",
-        "Corn_(maize)___Northern_Leaf_Blight",
-        "Corn_(maize)___healthy",
-        "Grape___Black_rot",
-        "Grape___Esca_(Black_Measles)",
-        "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
-        "Grape___healthy",
-        "Orange___Haunglongbing_(Citrus_greening)",
-        "Peach___Bacterial_spot",
-        "Peach___healthy",
-        "Pepper,_bell___Bacterial_spot",
-        "Pepper,_bell___healthy",
-        "Potato___Early_blight",
-        "Potato___Late_blight",
-        "Potato___healthy",
-        "Raspberry___healthy",
-        "Soybean___healthy",
-        "Squash___Powdery_mildew",
-        "Strawberry___Leaf_scorch",
-        "Strawberry___healthy",
-        "Tomato___Bacterial_spot",
-        "Tomato___Early_blight",
-        "Tomato___Late_blight",
-        "Tomato___Leaf_Mold",
-        "Tomato___Septoria_leaf_spot",
-        "Tomato___Spider_mites_Two-spotted_spider_mite",
-        "Tomato___Target_Spot",
-        "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
-        "Tomato___Tomato_mosaic_virus",
-        "Tomato___healthy",
-    ]
-
     def __init__(self):
-        self.model = None
-        self.transform = None
-        self.device = "cpu"
+        self.session = None
+        self.classes: List[str] = []
+        self.input_name = None
         self.load_error = None
         self._load()
 
     def _load(self):
         try:
-            import torch
-            import torch.nn as nn
-            from torchvision import models, transforms
+            import json
+            import onnxruntime as ort
             from huggingface_hub import hf_hub_download
+
+            token = os.getenv("HUGGINGFACE_TOKEN") or None
 
             model_path = hf_hub_download(
                 repo_id=self.MODEL_ID,
                 filename=self.MODEL_FILENAME,
-                token=os.getenv("HUGGINGFACE_TOKEN") or None,
+                token=token,
+            )
+            # The model uses ONNX external data; both files must be present
+            # in the same Hugging Face cache directory.
+            hf_hub_download(
+                repo_id=self.MODEL_ID,
+                filename=self.MODEL_DATA_FILENAME,
+                token=token,
+            )
+            classes_path = hf_hub_download(
+                repo_id=self.MODEL_ID,
+                filename=self.CLASSES_FILENAME,
+                token=token,
             )
 
-            model = models.mobilenet_v2(weights=None)
-            in_features = model.classifier[1].in_features
-            model.classifier[1] = nn.Sequential(
-                nn.Dropout(0.2),
-                nn.Linear(in_features, len(self.LABELS)),
+            with open(classes_path, "r", encoding="utf-8") as handle:
+                payload = json.load(handle)
+            classes = payload.get("classes") if isinstance(payload, dict) else payload
+            if not isinstance(classes, list) or len(classes) != 38:
+                raise RuntimeError("Plant disease class mapping is missing or invalid")
+
+            session = ort.InferenceSession(
+                model_path,
+                providers=["CPUExecutionProvider"],
             )
 
-            checkpoint = torch.load(model_path, map_location="cpu", weights_only=False)
-            if isinstance(checkpoint, dict):
-                state = (
-                    checkpoint.get("state_dict")
-                    or checkpoint.get("model_state_dict")
-                    or checkpoint
-                )
-            else:
-                state = checkpoint.state_dict()
+            if not session.get_inputs():
+                raise RuntimeError("Plant disease ONNX model has no input tensor")
 
-            # Handle common training wrappers such as "module." or "model.".
-            clean_state = {}
-            for key, value in state.items():
-                clean_key = str(key)
-                for prefix in ("module.", "model."):
-                    if clean_key.startswith(prefix):
-                        clean_key = clean_key[len(prefix):]
-                clean_state[clean_key] = value
+            self.session = session
+            self.classes = [str(value) for value in classes]
+            self.input_name = session.get_inputs()[0].name
 
-            missing, unexpected = model.load_state_dict(clean_state, strict=False)
-            if missing:
-                raise RuntimeError(
-                    f"Plant disease checkpoint is incomplete; missing {len(missing)} weights"
-                )
-
-            model.eval()
-            self.model = model
-            self.transform = transforms.Compose([
-                transforms.Resize((224, 224)),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    [0.485, 0.456, 0.406],
-                    [0.229, 0.224, 0.225],
-                ),
-            ])
             logger.info(
-                f"Loaded real plant disease model {self.MODEL_ID}; "
-                f"unexpected checkpoint keys={len(unexpected)}"
+                f"Loaded ONNX plant disease model {self.MODEL_ID} "
+                f"with {len(self.classes)} classes"
             )
         except Exception as exc:
             self.load_error = str(exc)
@@ -239,11 +194,22 @@ class LocalPlantDiseaseModel(VisionModelInterface):
     @staticmethod
     def _split_label(label: str) -> Dict:
         parts = label.split("___", 1)
-        crop = parts[0].replace("_(maize)", "").replace("_", " ").strip() if parts else "Unknown"
-        disease = parts[1].replace("_", " ").strip() if len(parts) > 1 else "Unknown"
+        raw_crop = parts[0] if parts else "Unknown"
+        raw_disease = parts[1] if len(parts) > 1 else "Unknown"
+
+        crop = (
+            raw_crop.replace("_(maize)", "")
+            .replace("_", " ")
+            .replace(", bell", "")
+            .replace("  ", " ")
+            .strip()
+        )
+        disease = raw_disease.replace("_", " ").strip()
         healthy = disease.lower() == "healthy"
+
         if healthy:
             disease = None
+
         return {
             "crop": crop,
             "disease": disease,
@@ -251,43 +217,54 @@ class LocalPlantDiseaseModel(VisionModelInterface):
         }
 
     def predict(self, image: Image.Image) -> Dict:
-        if self.model is None or self.transform is None:
+        if self.session is None or not self.input_name or not self.classes:
             raise RuntimeError(
                 "Real plant disease model is unavailable: "
                 + (self.load_error or "unknown loading error")
             )
 
-        import torch
+        img = (
+            image.convert("RGB")
+            .resize((224, 224), Image.Resampling.BILINEAR)
+        )
 
-        image = image.convert("RGB")
-        x = self.transform(image).unsqueeze(0)
-        with torch.inference_mode():
-            logits = self.model(x)
-            probs = torch.softmax(logits, dim=1)[0]
-            top_probs, top_idx = torch.topk(probs, k=min(3, len(self.LABELS)))
+        arr = np.asarray(img, dtype=np.float32) / 255.0
+        arr = (arr - np.array([0.485, 0.456, 0.406], dtype=np.float32)) / np.array(
+            [0.229, 0.224, 0.225],
+            dtype=np.float32,
+        )
+        tensor = np.transpose(arr, (2, 0, 1))[None, ...].astype(np.float32)
 
-        top_predictions = []
-        for probability, index in zip(top_probs.tolist(), top_idx.tolist()):
-            label = self.LABELS[int(index)]
-            top_predictions.append((label, round(float(probability) * 100, 1)))
+        logits = self.session.run(None, {self.input_name: tensor})[0][0]
+        logits = np.asarray(logits, dtype=np.float32)
+        logits = logits - float(np.max(logits))
+        probs = np.exp(logits)
+        probs /= max(float(probs.sum()), 1e-12)
+
+        top_indices = np.argsort(probs)[::-1][:3]
+        top_predictions = [
+            (self.classes[int(index)], round(float(probs[int(index)]) * 100.0, 1))
+            for index in top_indices
+        ]
 
         label = top_predictions[0][0]
         confidence = top_predictions[0][1]
         meta = self._split_label(label)
 
-        # Closed-set models can be confidently wrong on field photos or
-        # unsupported crops. Reject weak predictions instead of inventing a diagnosis.
         uncertain = confidence < 70.0
         disease = meta["disease"]
         prediction = f'{meta["crop"]} - {disease or "Healthy"}'
         reason = (
-            f"Local MobileNetV2 PlantVillage model top result: {prediction}."
-            f" Top confidence {confidence:.1f}%."
+            f"EfficientNetV2-S image model top result: {prediction}. "
+            f"Confidence {confidence:.1f}%."
         )
+
         if uncertain:
             disease = None
             prediction = f'{meta["crop"]} - Uncertain'
-            reason += " Confidence is below the safe diagnosis threshold, so no disease is confirmed."
+            reason += (
+                " Confidence is below the safe threshold, so no disease is confirmed."
+            )
 
         return {
             "prediction": prediction,
@@ -300,11 +277,11 @@ class LocalPlantDiseaseModel(VisionModelInterface):
             "uncertain": uncertain,
             "is_demo": False,
             "model_name": self.MODEL_ID,
-            "model_classes": len(self.LABELS),
+            "model_classes": len(self.classes),
         }
 
     def get_class_labels(self) -> List[str]:
-        return list(self.LABELS)
+        return list(self.classes)
 
 
 class DemoVisionModel(VisionModelInterface):

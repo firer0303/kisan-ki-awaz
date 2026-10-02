@@ -13,6 +13,7 @@ import os
 
 import numpy as np
 from PIL import Image
+from loguru import logger
 
 from config import settings
 
